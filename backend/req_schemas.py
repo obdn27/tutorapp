@@ -1,7 +1,10 @@
 from pydantic import BaseModel
 
 class DetailsRequest(BaseModel):
-    username: str
+    fName: str
+    lName: str
+    email: str
+    roleStudent: bool
     password: str
 
 class RefreshRequest(BaseModel):

@@ -52,10 +52,10 @@ async def login(req: DetailsRequest, response: Response):
 
 @app.post('/auth/register')
 async def register(data: DetailsRequest):
-    user_id = db.create_user(data.username, pwd_context.hash(data.password))
+    user_id = db.create_user(data.fName, data.lName, data.email, pwd_context.hash(data.password), data.roleStudent)
     print(user_id)
     if user_id == -1:
-        raise HTTPException(status_code=401, detail="Username not unique")
+        raise HTTPException(status_code=401, detail="Email or name not unique")
     else:
         return {
             "message": "register ok",

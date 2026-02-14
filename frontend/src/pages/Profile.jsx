@@ -12,8 +12,6 @@ export default function Profile(){
             headers: {'Content-Type': 'application/json'},
             credentials: 'include'
         }).then(async res => {
-            const data = await res.json().catch(() => null)
-
             console.log('LOGOUT STATUS', res.ok)
             setAccessToken(null)
             navigate('/')
@@ -24,6 +22,8 @@ export default function Profile(){
         <h1>Profile [TODO]</h1>
         <div>Access token: {accessToken}</div>
         <button onClick={signOut}>Sign out</button>
+
+        
 
     </>)
 }

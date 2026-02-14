@@ -7,6 +7,7 @@ import Settings from '../pages/Settings.jsx'
 import Register from '../pages/Register.jsx'
 import { useAuth } from '../Auth.jsx'
 import { Routes, Route } from "react-router-dom"
+import NewRegister from '../pages/NewRegister.jsx'
 
 
 
@@ -26,6 +27,7 @@ function App() {
 						<Route path="/register" element={<Register/>}></Route>
 						<Route path="/profile" element={<Profile/>}></Route>
 						<Route path="/settings" element={<Settings/>}></Route>
+						<Route path="/newregister" element={<NewRegister/>}></Route>
 					</Routes>
 				</div>
 			</div>

@@ -15,7 +15,10 @@ def locked_db():
 c.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
+    fName TEXT NOT NULL,
+    lName TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    roleStudent BIT NOT NULL,
     pwdhash TEXT NOT NULL
 )
 """)
@@ -31,27 +34,28 @@ CREATE TABLE IF NOT EXISTS sessions (
 )
 """)
 
-def create_user(username: str, pwdhash: str):
+def create_user(fName: str, lName: str, email: str, roleStudent: bool, pwdhash: str):
     try:
         with locked_db():
             c.execute(
-                "INSERT INTO users (username, pwdhash) VALUES (?, ?)",
-                (username, pwdhash),
+                "INSERT INTO users (fName, lName, email, pwdhash, roleStudent) VALUES (?, ?, ?, ?, ?)",
+                (fName, lName, email, pwdhash, roleStudent),
             )
             conn.commit()
             return c.lastrowid
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as e:
+        print(e)
         return -1
 
-def get_user(username: str):
+def get_user(email: str):
     with locked_db():
         row = c.execute(
-            "SELECT * FROM users WHERE username = ?",
-            (username,),
+            "SELECT * FROM users WHERE email = ?",
+            (email,),
         ).fetchone()
 
     row = None if row is None else dict(row)
-    print(f"db retrieved data for user {username}: {row}")
+    print(f"db retrieved data for user email {email}: {row}")
     return row
 
 def create_session(user_id, refresh_hash, expires, created):

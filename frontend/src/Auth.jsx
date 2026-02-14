@@ -1,21 +1,26 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { createContext, useContext, useEffect, useState } from 'react'
+import { UNSAFE_WithComponentProps, useNavigate } from 'react-router-dom'
+import axios from 'axios';
 
-export const AuthContext = createContext(null);
+export const APIURL = 'http://localhost:8000'
+
+export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-    const [accessToken, setAccessToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [accessToken, setAccessToken] = useState(null)
+    const [loading, setLoading] = useState(true)
 
     const navigate = useNavigate()
 
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch('http://localhost:8000/auth/refresh', {
-                    method: 'POST', 
-                    credentials: 'include'
-                })
+                const res = await axios.post(
+                    `${APIURL}/auth/refresh`,
+                    { withCredentials: true }
+                )
+
+                console.log(res)
 
                 if (res.ok) {
                     const data = await res.json()
@@ -24,11 +29,12 @@ export function AuthProvider({ children }) {
                     setAccessToken(null)
                     navigate('/signin')
                 }
-            } finally {
-                setLoading(false)
+            } catch {
+                console.log('failed to refresh')
             }
-
+            
         })()
+        setLoading(false)
     }, [])
 
     return (
