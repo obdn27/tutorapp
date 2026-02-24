@@ -15,18 +15,18 @@ def locked_db():
 c.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    fName TEXT NOT NULL,
-    lName TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    roleStudent BIT NOT NULL,
-    pwdhash TEXT NOT NULL
+    role INTEGER NOT NULL CHECK(role IN (0, 1, 2)),
+    pwd_hash TEXT NOT NULL
 )
 """)
 
 c.execute("""
 CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
+    user_id INTEGER REFERENCES users(id),
     refresh_token_hash TEXT UNIQUE,
     expires_at INTEGER,
     revoked BIT,
@@ -34,15 +34,41 @@ CREATE TABLE IF NOT EXISTS sessions (
 )
 """)
 
-def create_user(fName: str, lName: str, email: str, roleStudent: bool, pwdhash: str):
+c.execute("""
+CREATE TABLE IF NOT EXISTS tutorDetails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tutor_id INTEGER REFERENCES users(id),
+    rating_sum INTEGER NOT NULL,
+    no_ratings INTEGER NOT NULL,
+    hourly_gbp INTEGER NOT NULL,
+    subjects TEXT NOT NULL,
+    bio TEXT NOT NULL
+)
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tutor_id INTEGER REFERENCES users(id),
+    student_id INTEGER REFERENCES users(id),
+    start_ts INTEGER NOT NULL,
+    end_ts INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'requested'
+          CHECK(status IN ('requested', 'confirmed', 'canceled', 'rejected', 'completed')),
+    created_at INTEGER NOT NULL,
+    CHECK (end_ts > start_ts)
+)
+""")
+
+def create_user(fName: str, lName: str, email: str, role: int, pwdHash: str):
     try:
         with locked_db():
             c.execute(
-                "INSERT INTO users (fName, lName, email, pwdhash, roleStudent) VALUES (?, ?, ?, ?, ?)",
-                (fName, lName, email, pwdhash, roleStudent),
+                "INSERT INTO users (first_name, last_name, email, pwd_hash, role) VALUES (?, ?, ?, ?, ?)",
+                (fName, lName, email, pwdHash, role),
             )
             conn.commit()
-            return c.lastrowid
+            return c.lastrowid  
     except sqlite3.IntegrityError as e:
         print(e)
         return -1

@@ -7,18 +7,20 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 import secrets
 
+from fastapi import Header
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 refresh_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
 def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
-def authenticate_user(givenUsername, givenPassword):
-    user = get_user(givenUsername)
+def authenticate_user(givenEmail, givenPassword):
+    user = get_user(givenEmail)
     if not user:
         return None
     
-    if not verify_password(givenPassword, user["pwdhash"]):
+    if not verify_password(givenPassword, user["pwd_hash"]):
         return None
     
     return user
@@ -50,6 +52,11 @@ def create_access_token(user_id):
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
-def verify_access_token(token):
-    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+def verify_access_token(authorization: str = Header(None)):
+    if authorization is None:
+        return "No header found"
+    
+    authorization = authorization.split(' ')[1]
+    print("authorization", authorization)
+    payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
     return int(payload["sub"])

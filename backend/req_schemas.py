@@ -1,10 +1,14 @@
 from pydantic import BaseModel
 
-class DetailsRequest(BaseModel):
-    fName: str
-    lName: str
+class RegisterRequest(BaseModel):
+    first_name: str
+    last_name: str
     email: str
-    roleStudent: bool
+    role: int
+    password: str
+
+class LoginRequest(BaseModel):
+    email: str
     password: str
 
 class RefreshRequest(BaseModel):

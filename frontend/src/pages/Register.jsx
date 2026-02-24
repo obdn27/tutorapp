@@ -41,7 +41,7 @@ export default function Register() {
                     if (res.ok) {
                         console.log('LOGIN AFTER REG OK')
                         setAccessToken(data.access_token)
-                        navigate('/profile')
+                        navigate('/dashboard')
                     } else {
                         console.log('LOGIN AFTER REG NOT OK')
                         console.log(data.detail, res)
@@ -49,7 +49,7 @@ export default function Register() {
                     }
                 })
                 setErrorMessage('')
-                navigate('/profile')
+                navigate('/dashboard')
             } else {
                 setErrorMessage(data.detail)
             }

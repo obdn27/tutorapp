@@ -1,51 +1,32 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useState } from 'react'
-import { APIURL, useAuth } from '../Auth'
-import axios from 'axios'
+import { useAuth } from '../Auth'
+import { register, signin } from '../api'
 
 import { lightTheme as t } from '../assets/theme'
 import { Book, User } from 'lucide-react'
 
 export default function Register() {
-    const [roleStudent, setRoleStudent] = useState(true)
     const [fName, setFName] = useState('')
     const [lName, setLName] = useState('')
-    const [password, setPassword] = useState('')
     const [email, setEmail] = useState('')
-    const [errorMessage, setErroMessage] = useState('')
+    const [password, setPassword] = useState('')
+    const [roleTutor, setRoleStudent] = useState(false)
 
     const { setAccessToken } = useAuth()
+
+    const navigate = useNavigate()
+    const [errorMessage, setErroMessage] = useState('')
 
     const selectedStyles = 'font-semibold'
     const unselectedStyles = `bg-${t.cardBorder}`
 
     async function handleSubmit(e) {
         e.preventDefault()
-        console.log({ fName, lName, password, email, roleStudent })
-
-        try {
-            const res = await axios.post(
-                `${APIURL}/auth/register`,
-                {
-                    fName: fName,
-                    lName, lName,
-                    email: email,
-                    password: password,
-                    roleStudent: roleStudent,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                },
-            )
-
-            console.log(res)
-
-            setErroMessage('')
-        } catch (err){
-            console.log(err.response.data)
-            setErroMessage(err.response.data.detail)
+        if (await register(fName, lName, email, password, roleTutor, setErroMessage)) {
+            if (await signin(email, password, setAccessToken, setErroMessage))
+            navigate('/dashboard')
         }
-
     }
     
     return (<div className='flex flex-col items-center'>
@@ -53,12 +34,12 @@ export default function Register() {
         <div className={`${t.components.card.base} p-4`}>
 
             <div className='grid grid-cols-2 gap-x-3'>
-                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${roleStudent && t.components.button.ghostSelected}`}
-                    onClick={() => {setRoleStudent(true)}}>
+                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${!roleTutor && t.components.button.ghostSelected}`}
+                    onClick={() => {setRoleStudent(false)}}>
                     Student
                 </div>
-                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${!roleStudent && t.components.button.ghostSelected}`}
-                    onClick={() => {setRoleStudent(false)}}>
+                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${roleTutor && t.components.button.ghostSelected}`}
+                    onClick={() => {setRoleStudent(true)}}>
                     Tutor
                 </div>
             </div>
