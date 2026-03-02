@@ -1,23 +1,19 @@
 import { useNavigate, Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-
+import { useState } from 'react'
 import { lightTheme as t } from '../assets/theme'
-import { useAuth } from '../Auth'
 import { signin } from '../api'
 
 export default function SignIn() {
     const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const { accessToken, setAccessToken } = useAuth()
-    
+    const [password, setPassword] = useState('')    
     const navigate = useNavigate()
     const [errorMessage, setErrorMessage] = useState('')
 
     async function handleSubmit(e) {
         e.preventDefault()
-        if(await signin(email, password, setAccessToken, setErrorMessage)) {
-            navigate('/dashboard')
-        }
+        const res = await signin(email, password, setErrorMessage)
+        console.log(res)
+        if (res) { navigate('/dashboard') }
     }
 
     return (<div className='flex flex-col items-center'>
@@ -28,7 +24,6 @@ export default function SignIn() {
                 onSubmit={handleSubmit}
                 className={'flex flex-col space-y-8 mb-4'}
             >
-
                 {
                     errorMessage ?                
                     <div className={`${t.colors.status.error} rounded-xl px-4 py-3 text-center`}>{errorMessage}</div> :

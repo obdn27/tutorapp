@@ -4,10 +4,10 @@ from db import get_user
 
 import time
 from datetime import datetime, timedelta, timezone
-from jose import jwt
+from jose import jwt, ExpiredSignatureError
 import secrets
 
-from fastapi import Header
+from fastapi import Header, HTTPException
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 refresh_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
@@ -53,10 +53,15 @@ def create_access_token(user_id):
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
 def verify_access_token(authorization: str = Header(None)):
+    print("authorization:", authorization)
     if authorization is None:
         return "No header found"
     
     authorization = authorization.split(' ')[1]
-    print("authorization", authorization)
-    payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
+
+    try:
+        payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
+    except ExpiredSignatureError:
+        raise HTTPException(401, detail="Session expired")
+    
     return int(payload["sub"])

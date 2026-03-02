@@ -39,21 +39,32 @@ async def login(req: LoginRequest, response: Response):
         httponly=True,
         secure=False,    # TODO: set to True when deploying
         samesite="lax",
-        path="/",
+        path="/auth/refresh",
         max_age=REFRESH_DAYS * 24 * 3600
     )
     
     return {
         "message": "login ok",
         "access_token": access,
-        # "refresh token": refresh,
         "token_type": "bearer",
     }
 
-@app.post('/auth/register')
-async def register(data: RegisterRequest):
-    print("received register data:", data, pwd_context.hash(data.password))
-    user_id = db.create_user(data.first_name, data.last_name, data.email, data.role, pwd_context.hash(data.password))
+@app.post('/auth/register_student')
+async def register_student(data: RegisterStudentRequest):
+    user_id = db.create_user(data.first_name, data.last_name, data.email, 0, pwd_context.hash(data.password))
+    print(user_id)
+    if user_id == -1:
+        raise HTTPException(status_code=401, detail="Email or name not unique")
+    else:
+        return {
+            "message": "register ok",
+            "id": user_id
+        }
+    
+@app.post('/auth/register_tutor')
+async def register_tutor(data: RegisterTutorRequest):
+    user_id = db.create_user(data.first_name, data.last_name, data.email, 1, pwd_context.hash(data.password))
+    db.set_tutor_details(user_id, data.subjects, data.hourly_gbp, data.bio)
     print(user_id)
     if user_id == -1:
         raise HTTPException(status_code=401, detail="Email or name not unique")
@@ -65,8 +76,6 @@ async def register(data: RegisterRequest):
     
 @app.post('/auth/refresh')
 def refresh(refresh_token: str | None = Cookie(default=None)):
-    print("refresh:", refresh_token)
-
     if refresh_token is None:
         raise HTTPException(status_code=401, detail="No refresh token")
 
@@ -74,7 +83,6 @@ def refresh(refresh_token: str | None = Cookie(default=None)):
     ts = now_ts()
 
     row = db.get_session(refresh_hash)
-    print("got row for refresh token:", row)
 
     if not row:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -93,13 +101,43 @@ def logout(response: Response, refresh_token: str | None = Cookie(default=None))
         db.delete_session(hash_refresh_token(refresh_token))
 
     response.delete_cookie(key="refresh_token", path="/auth/refresh")
-    return {
-        "message": "ok"
-    }
 
-@app.get('/auth/sessions')
-def sessions(user_id: str = Depends(verify_access_token)):
-    print("user_id", user_id)
-    return {
-        
-    }
+    return {"message": "ok"}
+
+@app.get('/data/sessions')
+def sessions(response: Response, user_id: str | None = Depends(verify_access_token)):
+    return {"message": "not implemented yet"}
+
+@app.get('/data/tutors')
+def tutors(response: Response, user_id: str | None = Depends(verify_access_token)):
+    return db.get_all_tutors()
+
+@app.post('/data/book')
+def book(payload: BookRequest, response: Response, user_id: str | None = Depends(verify_access_token)):
+    print("booking request received, here is info:")
+    print(user_id)
+    db.add_new_booking(payload.tutor_id, user_id, payload.start_ts, payload.end_ts, payload.notes)
+    return {"message": "ok"}
+
+@app.get("/data/bookings")
+def list_bookings(user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role is None:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    if role == 0:
+        res = db.get_bookings_for_student(user_id)
+        print("student bookings", res)
+        return res
+
+    if role == 1:
+        res = db.get_bookings_for_tutor(user_id)
+        print(res)
+        return res
+
+    raise HTTPException(status_code=403, detail="Not allowed")
+
+@app.get("/data/me")
+def get_my_info(user_id: int = Depends(verify_access_token)):
+    print("getting info of user_id:", user_id)
+    return db.get_my_info(user_id)
