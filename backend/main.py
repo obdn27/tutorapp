@@ -167,17 +167,47 @@ def get_my_info(user_id: int = Depends(authed_user_id)):
     return db.get_my_info(user_id)
 
 @app.get("/data/bookings")
-def list_bookings(user_id: int = Depends(authed_user_id)):
+def list_bookings(
+    user_id: int = Depends(verify_access_token),
+    status: str | None = None,
+    from_ts: int | None = None,
+    to_ts: int | None = None,
+    kind: str | None = None,  # "upcoming" | "past"
+):
     role = db.get_user_role(user_id)
     if role is None:
         raise HTTPException(status_code=401, detail="Invalid user")
 
     if role == 0:
-        return db.get_bookings_for_student(user_id)
-    if role == 1:
-        return db.get_bookings_for_tutor(user_id)
+        bookings = db.get_bookings_for_student(user_id)
+    elif role == 1:
+        bookings = db.get_bookings_for_tutor(user_id)
+    else:
+        raise HTTPException(status_code=403, detail="Not allowed")
 
-    raise HTTPException(status_code=403, detail="Not allowed")
+    # validate filters
+    if status is not None:
+        allowed = {"requested", "confirmed", "canceled", "rejected", "completed"}
+        if status not in allowed:
+            raise HTTPException(status_code=400, detail="Invalid status filter")
+        bookings = [b for b in bookings if b["status"] == status]
+
+    if from_ts is not None:
+        bookings = [b for b in bookings if b["end_ts"] > from_ts]
+
+    if to_ts is not None:
+        bookings = [b for b in bookings if b["start_ts"] < to_ts]
+
+    if kind is not None:
+        if kind not in ("upcoming", "past"):
+            raise HTTPException(status_code=400, detail="Invalid kind filter")
+        now = int(time.time())
+        if kind == "upcoming":
+            bookings = [b for b in bookings if b["end_ts"] > now]
+        else:
+            bookings = [b for b in bookings if b["end_ts"] <= now]
+
+    return bookings
 
 @app.get("/data/bookings/{booking_id}")
 def get_booking(booking_id: int, user_id: int = Depends(authed_user_id)):
@@ -188,9 +218,17 @@ def get_booking(booking_id: int, user_id: int = Depends(authed_user_id)):
         raise HTTPException(status_code=404, detail="Booking not found")
     return b
 
+@app.get("/data/bookings/requests")
+def tutor_requests(user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role != 1:
+        raise HTTPException(status_code=403, detail="Tutors only")
+
+    bookings = db.get_bookings_for_tutor(user_id)
+    return [b for b in bookings if b["status"] == "requested"]
+
 @app.post("/data/can_book")
 def can_book(payload: CanBookRequest, user_id: int = Depends(authed_user_id)):
-    # if you only allow students to book:
     require_student(user_id)
 
     ok, reason = db.can_book_slot(
@@ -220,6 +258,47 @@ def create_booking(payload: BookRequest, user_id: int = Depends(authed_user_id))
         raise HTTPException(status_code=409, detail=reason)
 
     raise HTTPException(status_code=400, detail=reason)
+
+# ---------- tutor data management ---------
+
+@app.get("/data/tutor/me")
+def get_tutor_me(user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role != 1:
+        raise HTTPException(status_code=403, detail="Tutors only")
+
+    prof = db.get_tutor_profile(user_id)
+    if not prof:
+        raise HTTPException(status_code=404, detail="Tutor profile not found")
+
+    return prof
+
+@app.patch("/data/tutor/me")
+def patch_tutor_me(payload: TutorPatchRequest, user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role != 1:
+        raise HTTPException(status_code=403, detail="Tutors only")
+
+    if payload.hourly_gbp is not None and payload.hourly_gbp <= 0:
+        raise HTTPException(status_code=400, detail="hourly_gbp must be > 0")
+
+    if payload.bio is not None and len(payload.bio) > 2000:
+        raise HTTPException(status_code=400, detail="bio too long")
+
+    db.update_tutor_profile(user_id, payload.hourly_gbp, payload.bio)
+    return {"message": "ok"}
+
+@app.put("/data/tutor/me/subjects")
+def put_tutor_subjects(payload: TutorSubjectsRequest, user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role != 1:
+        raise HTTPException(status_code=403, detail="Tutors only")
+
+    if not isinstance(payload.subjects, list) or len(payload.subjects) > 50:
+        raise HTTPException(status_code=400, detail="Invalid subjects")
+
+    db.replace_tutor_subjects(user_id, payload.subjects)
+    return {"message": "ok"}
 
 # ---------- tutor schedule management ----------
 
@@ -292,6 +371,35 @@ def delete_my_off_time(off_id: int, user_id: int = Depends(authed_user_id)):
     db.delete_off_time(off_id)
     return {"message": "ok"}
 
+# ---------- student only endpoints ----------
+
+@app.post("/data/bookings/{booking_id}/review")
+def leave_review(booking_id: int, payload: ReviewRequest, user_id: int = Depends(verify_access_token)):
+    role = db.get_user_role(user_id)
+    if role != 0:
+        raise HTTPException(status_code=403, detail="Students only")
+
+    ok, reason = db.create_review(
+        booking_id=booking_id,
+        student_id=user_id,
+        rating=payload.rating,
+        comment=payload.comment,
+    )
+
+    if ok:
+        return {"message": "ok"}
+
+    if reason == "not_found":
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if reason == "not_allowed":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if reason == "not_completed":
+        raise HTTPException(status_code=409, detail="Booking not completed")
+    if reason == "already_reviewed":
+        raise HTTPException(status_code=409, detail="Already reviewed")
+
+    raise HTTPException(status_code=500, detail="Failed to create review")
+
 # ---------- booking status ----------
 
 @app.patch("/data/bookings/{booking_id}/status")
@@ -329,4 +437,38 @@ def patch_booking_status(booking_id: int, payload: StatusPatch, user_id: int = D
         raise HTTPException(status_code=403, detail="Tutors cannot set that status")
 
     db.update_booking_status(booking_id, new_status)
+    return {"message": "ok"}
+
+@app.post("/data/bookings/{booking_id}/reschedule")
+def reschedule_booking(
+    booking_id: int,
+    payload: RescheduleRequest,  # start_ts, end_ts
+    user_id: int = Depends(verify_access_token),
+):
+    b = db.get_booking_by_id(booking_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if user_id != b["tutor_id"] and user_id != b["student_id"]:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if b["status"] in ("canceled", "rejected", "completed"):
+        raise HTTPException(status_code=409, detail="Booking is not reschedulable")
+
+    ok, reason = db.can_book_slot(
+        tutor_id=b["tutor_id"],
+        student_id=b["student_id"],
+        start_ts=payload.start_ts,
+        end_ts=payload.end_ts,
+        exclude_booking_id=booking_id,
+    )
+
+    if not ok:
+        if reason in ("tutor_clash", "student_clash", "tutor_off_time"):
+            raise HTTPException(status_code=409, detail=reason)
+        raise HTTPException(status_code=400, detail=reason)
+
+    db.update_booking_time(booking_id, payload.start_ts, payload.end_ts)
+    db.update_booking_status(booking_id, "requested")
+
     return {"message": "ok"}

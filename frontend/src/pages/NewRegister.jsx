@@ -183,7 +183,7 @@ function TutorRegister() {
     </form>
 }
 
-function StudentRegister({accessTokenSetter, navigator}) {
+function StudentRegister() {
     const [fName, setFName] = useState('')
     const [lName, setLName] = useState('')
     const [email, setEmail] = useState('')
@@ -193,9 +193,9 @@ function StudentRegister({accessTokenSetter, navigator}) {
 
     async function handleSubmit(e) {
         e.preventDefault()
-        const res = await registerTutor(fName, lName, email, password, subjects, hourlyRate, bio, setErroMessage)
+        const res = await registerStudent(fName, lName, email, password, setErroMessage)
         if (res) {
-            const res = await signin(email, password, accessTokenSetter, setErroMessage)
+            const res = await signin(email, password, setErroMessage)
             if (res) { navigate('/dashboard') }
         }
     }

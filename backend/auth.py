@@ -16,6 +16,7 @@ def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
 def authenticate_user(givenEmail, givenPassword):
+    print(givenEmail, givenPassword)
     user = get_user(givenEmail)
     if not user:
         return None

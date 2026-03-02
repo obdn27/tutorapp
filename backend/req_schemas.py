@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class RegisterStudentRequest(BaseModel):
     first_name: str
@@ -45,3 +45,18 @@ class HoursRequest(BaseModel):
 class OffTimeRequest(BaseModel):
     start_ts: int
     end_ts: int
+
+class RescheduleRequest(BaseModel):
+    start_ts: int
+    end_ts: int
+
+class TutorPatchRequest(BaseModel):
+    hourly_gbp: int | None = None
+    bio: str | None = None
+
+class TutorSubjectsRequest(BaseModel):
+    subjects: list[str]
+
+class ReviewRequest(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str | None = None

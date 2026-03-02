@@ -1,19 +1,18 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { lightTheme as t } from '../assets/theme'
 import { signin } from '../api'
+import { useAuth } from '../Auth'
 
 export default function SignIn() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')    
-    const navigate = useNavigate()
+    const { setMe } = useAuth()
     const [errorMessage, setErrorMessage] = useState('')
 
     async function handleSubmit(e) {
         e.preventDefault()
-        const res = await signin(email, password, setErrorMessage)
-        console.log(res)
-        if (res) { navigate('/dashboard') }
+        const res = await signin(email, password, setErrorMessage, setMe)
     }
 
     return (<div className='flex flex-col items-center'>

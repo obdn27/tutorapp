@@ -95,7 +95,7 @@ export async function refresh() {
     }
 }
 
-export async function signin(email, password, errorMsgSetter) {
+export async function signin(email, password, errorMsgSetter, meSetter) {
     try {
         const res = await axios.post(
             endpoints.signin,
@@ -105,10 +105,10 @@ export async function signin(email, password, errorMsgSetter) {
                 withCredentials: true,
             }
         )
-        console.log(res)
         const token = res.data?.access_token ?? null
         setStoredAccessToken(token)
         errorMsgSetter('')
+        meSetter(await getMe())
         navigator('/dashboard')
         return token        
     } catch (err) {

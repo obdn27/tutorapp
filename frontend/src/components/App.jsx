@@ -7,7 +7,7 @@ import NewRegister from '../pages/NewRegister.jsx'
 import Book from '../pages/Book.jsx'
 
 import { Home, Search, LogOut } from 'lucide-react'
-import { signout, setAuthFailHandler, setNavigator } from '../api.js'
+import { signout, setNavigator } from '../api.js'
 
 import { Navigate } from "react-router-dom";
 import { useEffect } from 'react'
