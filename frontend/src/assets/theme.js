@@ -70,8 +70,8 @@ export const lightTheme = {
       label: 'text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2.5 block',
     },
     card: {
-      base: 'bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden',
-      interactive: 'bg-white rounded-3xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer overflow-hidden',
+      base: 'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden',
+      interactive: 'bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer overflow-hidden',
     },
     link: 'text-slate-500 underline font-semibold ',
     badge: 'px-3 py-1 rounded-full text-xs font-bold',

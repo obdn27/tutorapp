@@ -4,8 +4,8 @@ const APIURL = 'http://localhost:8000'
 
 export const endpoints = {
     'refresh': APIURL + '/auth/refresh',
-    'signin': APIURL + '/auth/login',
-    'signout': APIURL + '/auth/logout',
+    'signin': APIURL + '/auth/signin',
+    'signout': APIURL + '/auth/signout',
     'registerTutor': APIURL + '/auth/register_tutor',
     'registerStudent': APIURL + '/auth/register_student',
     'sessions': APIURL + '/data/sessions',

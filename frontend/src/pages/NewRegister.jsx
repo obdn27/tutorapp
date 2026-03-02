@@ -1,6 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useState } from 'react'
-import { useAuth } from '../Auth'
 import { registerStudent, registerTutor, signin } from '../api'
 
 import { lightTheme as t } from '../assets/theme'
@@ -8,9 +7,6 @@ import { Book, User, Plus } from 'lucide-react'
 
 export default function Register() {
     const [roleTutor, setRoleTutor] = useState(false)
-    const { setAccessToken } = useAuth()
-
-    const navigate = useNavigate()
     
     return (<div className='flex flex-col items-center'>
         <div className={`${t.typography.huge} m-8`}>Register</div>
@@ -29,15 +25,15 @@ export default function Register() {
 
             {
                 roleTutor ?
-                <TutorRegister accessTokenSetter={setAccessToken} navigator={navigate}/> :
-                <StudentRegister accessTokenSetter={setAccessToken} navigator={navigate}/>
+                <TutorRegister/> :
+                <StudentRegister/>
             }
             
         </div>
     </div>)
 }
 
-function TutorRegister({accessTokenSetter, navigator}) {
+function TutorRegister() {
     const [fName, setFName] = useState('')
     const [lName, setLName] = useState('')
     const [email, setEmail] = useState('')
@@ -47,12 +43,14 @@ function TutorRegister({accessTokenSetter, navigator}) {
     const [subjects, setSubjects] = useState([])
     const [bio, setBio] = useState('')
     const [errorMessage, setErroMessage] = useState('')
+    const navigate = useNavigate()
 
     async function handleSubmit(e) {
         e.preventDefault()
-        if (await registerTutor(fName, lName, email, password, subjects, hourlyRate, bio, setErroMessage)) {
-            if (await signin(email, password, accessTokenSetter, setErroMessage))
-            navigator('/dashboard')
+        const res = await registerTutor(fName, lName, email, password, subjects, hourlyRate, bio, setErroMessage)
+        if (res) {
+            const res = await signin(email, password, accessTokenSetter, setErroMessage)
+            if (res) { navigate('/dashboard') }
         }
     }
 
@@ -191,12 +189,14 @@ function StudentRegister({accessTokenSetter, navigator}) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [errorMessage, setErroMessage] = useState('')
+    const navigate = useNavigate()
 
     async function handleSubmit(e) {
         e.preventDefault()
-        if (await registerStudent(fName, lName, email, password, setErroMessage)) {
-            if (await signin(email, password, accessTokenSetter, setErroMessage))
-            navigator('/dashboard')
+        const res = await registerTutor(fName, lName, email, password, subjects, hourlyRate, bio, setErroMessage)
+        if (res) {
+            const res = await signin(email, password, accessTokenSetter, setErroMessage)
+            if (res) { navigate('/dashboard') }
         }
     }
 

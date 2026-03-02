@@ -57,7 +57,7 @@ function App() {
 				{/* Push signout to bottom */}
 				<div className="mt-auto pt-6 border-t border-slate-100">
 					<button
-						onClick={() => signout(setAccessToken, navigate)}
+						onClick={() => signout()}
 						className={`${t.components.button.danger} w-full justify-start`}
 					>
 						<LogOut className="w-5 h-5" />

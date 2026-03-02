@@ -23,8 +23,25 @@ class LoginRequest(BaseModel):
 class RefreshRequest(BaseModel):
     refresh_token: str
 
+class CanBookRequest(BaseModel):
+    tutor_id: int
+    start_ts: int
+    end_ts: int
+
 class BookRequest(BaseModel):
     tutor_id: int
     start_ts: int
     end_ts: int
-    notes: str
+    notes: str = ""
+
+class StatusPatch(BaseModel):
+    status: str
+
+class HoursRequest(BaseModel):
+    start_s: int
+    end_s: int
+    weekday: int
+
+class OffTimeRequest(BaseModel):
+    start_ts: int
+    end_ts: int
