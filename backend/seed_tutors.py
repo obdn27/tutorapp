@@ -1,163 +1,182 @@
-import requests
 import random
+import time
+import string
+import requests
+from datetime import datetime, timedelta, timezone
 
 API = "http://localhost:8000"
 
-REGISTER_URL = f"{API}/auth/register_tutor"
-LOGIN_URL = f"{API}/auth/login"
-SET_HOURS_URL = f"{API}/data/hours"
+REGISTER_TUTOR = f"{API}/auth/register_tutor"
+SIGNIN = f"{API}/auth/signin"
+SET_HOURS = f"{API}/data/hours"
+ADD_OFFTIME = f"{API}/data/off_time"
 
-tutors = [
-    {
-        "first_name": "Hector",
-        "last_name": "Wales",
-        "email": "hectorwales@gmail.com",
-        "password": "123",
-        "hourly_gbp": 15,
-        "subjects": ["English", "Physics", "Maths"],
-        "bio": "Experienced English and Physics tutor."
-    },
-    {
-        "first_name": "Amelia",
-        "last_name": "Clark",
-        "email": "amelia.clark@gmail.com",
-        "password": "123",
-        "hourly_gbp": 25,
-        "subjects": ["Maths", "Further Maths", "Statistics"],
-        "bio": "A-Level Maths specialist."
-    },
-    {
-        "first_name": "Daniel",
-        "last_name": "Shaw",
-        "email": "daniel.shaw@gmail.com",
-        "password": "123",
-        "hourly_gbp": 20,
-        "subjects": ["Biology", "Chemistry", "Physics"],
-        "bio": "Helping students excel in science."
-    },
-    {
-        "first_name": "Sophia",
-        "last_name": "Turner",
-        "email": "sophia.turner@gmail.com",
-        "password": "123",
-        "hourly_gbp": 30,
-        "subjects": ["History", "Politics", "Philosophy"],
-        "bio": "Essay writing and exam prep expert."
-    },
-    {
-        "first_name": "Liam",
-        "last_name": "Evans",
-        "email": "liam.evans@gmail.com",
-        "password": "123",
-        "hourly_gbp": 18,
-        "subjects": ["Computer Science", "Maths", "Physics"],
-        "bio": "Programming and algorithms tutor."
-    },
-    {
-        "first_name": "Olivia",
-        "last_name": "Morgan",
-        "email": "olivia.morgan@gmail.com",
-        "password": "123",
-        "hourly_gbp": 22,
-        "subjects": ["Psychology", "Sociology", "Biology"],
-        "bio": "Social sciences tutor."
-    },
-    {
-        "first_name": "Noah",
-        "last_name": "Reed",
-        "email": "noah.reed@gmail.com",
-        "password": "123",
-        "hourly_gbp": 17,
-        "subjects": ["English Literature", "History", "Drama"],
-        "bio": "Literature and analysis support."
-    },
-    {
-        "first_name": "Mia",
-        "last_name": "Bennett",
-        "email": "mia.bennett@gmail.com",
-        "password": "123",
-        "hourly_gbp": 28,
-        "subjects": ["Physics", "Maths", "Further Maths"],
-        "bio": "STEM-focused tutoring."
-    },
-    {
-        "first_name": "Ethan",
-        "last_name": "Price",
-        "email": "ethan.price@gmail.com",
-        "password": "123",
-        "hourly_gbp": 19,
-        "subjects": ["Geography", "Environmental Science", "Biology"],
-        "bio": "Geography specialist."
-    },
-    {
-        "first_name": "Isla",
-        "last_name": "Foster",
-        "email": "isla.foster@gmail.com",
-        "password": "123",
-        "hourly_gbp": 24,
-        "subjects": ["French", "Spanish", "English"],
-        "bio": "Modern languages tutor."
-    }
+# ---------- config ----------
+N_TUTORS = 20
+
+SUBJECT_POOL = [
+    "Maths", "Further Maths", "Physics", "Chemistry", "Biology",
+    "English", "English Literature", "History", "Geography",
+    "Computer Science", "Economics", "Psychology", "Sociology",
+    "Politics", "Philosophy", "French", "Spanish", "German",
+    "Statistics", "Business", "Media Studies"
 ]
 
-def hm_to_seconds(h: int, m: int = 0) -> int:
-    return h * 3600 + m * 60
+FIRST_NAMES = [
+    "Amelia", "Noah", "Olivia", "Liam", "Isla", "Ethan", "Mia", "Lucas", "Sophia", "Ava",
+    "James", "Leo", "Grace", "Ella", "Hector", "Daniel", "Harper", "Chloe", "Finn", "Zara",
+    "Alex", "Sam", "Taylor", "Rowan", "Casey", "Jordan"
+]
 
-def login_get_token(email: str, password: str) -> str | None:
-    r = requests.post(
-        LOGIN_URL,
-        json={"email": email, "password": password},
-        # if your backend sets refresh cookie on login, this allows it,
-        # but not strictly required for access_token response:
-        # cookies/session not needed unless your login depends on it
-    )
+LAST_NAMES = [
+    "Clark", "Evans", "Morgan", "Bennett", "Turner", "Shaw", "Reed", "Foster", "Wales", "Price",
+    "Green", "Hall", "Wright", "Baker", "Adams", "Hill", "Parker", "Cooper", "Ward", "Scott"
+]
+
+BIO_TEMPLATES = [
+    "I help students build confidence and improve exam technique with structured sessions.",
+    "Focused on A-Level outcomes: clear explanations, targeted practice, and weekly goals.",
+    "Friendly but rigorous tutoring — I’ll push you to understand, not memorise.",
+    "I specialise in past paper strategies and breaking down difficult topics.",
+    "Supportive, patient teaching style with lots of worked examples and quick feedback."
+]
+
+# ---------- helpers ----------
+
+def rand_email(i: int) -> str:
+    # stable-ish emails so you can rerun by changing prefix if needed
+    return f"seed_tutor_{i:02d}@example.com"
+
+def rand_password() -> str:
+    return "123"  # keep simple for seeding
+
+def pick_subjects():
+    k = random.randint(2, 5)
+    return random.sample(SUBJECT_POOL, k)
+
+def rand_rate():
+    return random.choice([15, 18, 20, 22, 25, 28, 30, 35])
+
+def rand_bio(subjects):
+    base = random.choice(BIO_TEMPLATES)
+    focus = f"Subjects: {', '.join(subjects[:3])}."
+    return f"{base} {focus}"
+
+def utc_ts(dt: datetime) -> int:
+    return int(dt.replace(tzinfo=timezone.utc).timestamp())
+
+def weekday_hours_pattern():
+    """
+    Returns dict weekday -> (start_s, end_s).
+    weekday: 0=Mon..6=Sun
+    start_s/end_s: seconds from midnight (your schema)
+    """
+    # common patterns
+    patterns = [
+        # 9-17
+        {0:(9*3600,17*3600),1:(9*3600,17*3600),2:(9*3600,17*3600),3:(9*3600,17*3600),4:(9*3600,17*3600)},
+        # 10-18
+        {0:(10*3600,18*3600),1:(10*3600,18*3600),2:(10*3600,18*3600),3:(10*3600,18*3600),4:(10*3600,18*3600)},
+        # 16-20 evenings
+        {0:(16*3600,20*3600),1:(16*3600,20*3600),2:(16*3600,20*3600),3:(16*3600,20*3600),4:(16*3600,20*3600)},
+        # mixed
+        {0:(9*3600,15*3600),1:(12*3600,18*3600),2:(9*3600,15*3600),3:(12*3600,18*3600),4:(9*3600,15*3600)},
+    ]
+    hours = random.choice(patterns).copy()
+
+    # optional Saturday availability
+    if random.random() < 0.5:
+        hours[5] = (random.choice([10,11,12]) * 3600, random.choice([14,15,16,17]) * 3600)
+
+    # rarely Sunday
+    if random.random() < 0.15:
+        hours[6] = (12*3600, 16*3600)
+
+    return hours
+
+def post_json(url, payload, headers=None, cookies=None, timeout=10):
+    r = requests.post(url, json=payload, headers=headers or {}, cookies=cookies or {}, timeout=timeout)
+    return r
+
+def seed_one_tutor(i: int):
+    first = random.choice(FIRST_NAMES)
+    last = random.choice(LAST_NAMES)
+    email = rand_email(i)
+    pwd = rand_password()
+    subjects = pick_subjects()
+    hourly = rand_rate()
+    bio = rand_bio(subjects)
+
+    # 1) register
+    r = post_json(REGISTER_TUTOR, {
+        "first_name": first,
+        "last_name": last,
+        "email": email,
+        "password": pwd,
+        "hourly_gbp": hourly,
+        "subjects": subjects,
+        "bio": bio,
+    })
+
     if r.status_code != 200:
-        print(f"LOGIN FAIL {email} -> {r.status_code}: {r.text}")
-        return None
-    return (r.json() or {}).get("access_token")
+        return False, f"register failed {email}: {r.status_code} {r.text}"
 
-def seed_week_hours(token: str, *, start_s: int, end_s: int, weekdays: list[int]) -> None:
+    # 2) signin to get cookie + access token
+    s = requests.Session()
+    r2 = s.post(SIGNIN, json={"email": email, "password": pwd}, timeout=10)
+    if r2.status_code != 200:
+        return False, f"signin failed {email}: {r2.status_code} {r2.text}"
+
+    token = r2.json().get("access_token")
+    if not token:
+        return False, f"no access token for {email}"
+
     headers = {"Authorization": f"Bearer {token}"}
 
-    for wd in weekdays:
-        payload = {"weekday": wd, "start_s": start_s, "end_s": end_s}
-        r = requests.post(SET_HOURS_URL, json=payload, headers=headers)
+    # 3) set weekly hours
+    hours = weekday_hours_pattern()
+    for wd, (start_s, end_s) in hours.items():
+        rh = post_json(SET_HOURS, {"weekday": wd, "start_s": start_s, "end_s": end_s}, headers=headers, cookies=s.cookies.get_dict())
+        if rh.status_code != 200:
+            return False, f"set_hours failed {email} wd={wd}: {rh.status_code} {rh.text}"
 
-        # if you used UPSERT semantics, you might return 200/201
-        # if uniqueness constraint hits and you don't handle update, you might get 409/400
-        if r.status_code not in (200, 201):
-            print(f"  hours wd={wd} -> {r.status_code}: {r.text}")
+    # 4) add random off-times in next 14 days
+    # (these are timestamp ranges)
+    now = datetime.now(timezone.utc)
+    for _ in range(random.randint(1, 4)):
+        day_offset = random.randint(0, 13)
+        day = (now + timedelta(days=day_offset)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # block 1-3 hours somewhere between 9 and 18
+        start_hour = random.randint(9, 17)
+        duration_h = random.choice([1, 1, 2, 2, 3])
+        start = day + timedelta(hours=start_hour, minutes=random.choice([0, 30]))
+        end = start + timedelta(hours=duration_h)
+
+        ro = post_json(
+            ADD_OFFTIME,
+            {"start_ts": utc_ts(start), "end_ts": utc_ts(end)},
+            headers=headers,
+            cookies=s.cookies.get_dict()
+        )
+        if ro.status_code != 200:
+            # don’t hard fail; offTimes can overlap (you haven’t constrained overlaps)
+            pass
+
+    return True, f"seeded {email} ({first} {last})"
 
 def main():
-    # deterministic-ish variations
-    random.seed(7)
+    random.seed(42)
 
-    for tutor in tutors:
-        # 1) register
-        reg = requests.post(REGISTER_URL, json=tutor)
-        print(f"{tutor['email']} -> register {reg.status_code}")
-        if reg.status_code not in (200, 201):
-            print(reg.text)
-            # If already exists, still try to login + seed hours
-            # continue
+    ok = 0
+    for i in range(1, N_TUTORS + 1):
+        success, msg = seed_one_tutor(i)
+        print(msg)
+        if success:
+            ok += 1
+        time.sleep(0.05)
 
-        # 2) login for access token
-        token = login_get_token(tutor["email"], tutor["password"])
-        if not token:
-            continue
-
-        # 3) seed availability (Mon-Fri)
-        # one interval per weekday due to UNIQUE(user_id, weekday)
-        # vary start/end slightly per tutor so it's not all identical
-        start_hour = random.choice([9, 10, 11, 12])
-        end_hour = start_hour + random.choice([6, 7, 8])  # 6-8 hr day
-        end_hour = min(end_hour, 20)  # cap
-
-        start_s = hm_to_seconds(start_hour, 0)
-        end_s = hm_to_seconds(end_hour, 0)
-
-        print(f"  seeding hours {start_hour:02d}:00-{end_hour:02d}:00 (Mon-Fri)")
-        seed_week_hours(token, start_s=start_s, end_s=end_s, weekdays=[0, 1, 2, 3, 4])
+    print(f"\nDone: {ok}/{N_TUTORS} tutors seeded.")
 
 if __name__ == "__main__":
     main()

@@ -1,275 +1,309 @@
-import { useNavigate, Link } from 'react-router-dom'
-import { useState } from 'react'
-import { registerStudent, registerTutor, signin } from '../api'
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, X } from "lucide-react";
 
-import { lightTheme as t } from '../assets/theme'
-import { Book, User, Plus } from 'lucide-react'
+import { lightTheme as t } from "../assets/theme";
+import { registerStudent, registerTutor, signin } from "../api";
+import { useAuth } from "../Auth";
 
 export default function Register() {
-    const [roleTutor, setRoleTutor] = useState(false)
-    
-    return (<div className='flex flex-col items-center'>
-        <div className={`${t.typography.huge} m-8`}>Register</div>
-        <div className={`${t.components.card.base} p-4`}>
+  const [role, setRole] = useState("student"); // "student" | "tutor"
 
-            <div className='grid grid-cols-2 gap-x-3'>
-                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${!roleTutor && t.components.button.ghostSelected}`}
-                    onClick={() => {setRoleTutor(false)}}>
-                    Student
-                </div>
-                <div className={`${t.components.button.ghostBase} ${t.components.button.ghost} ${t.components.button.ghostHover} ${roleTutor && t.components.button.ghostSelected}`}
-                    onClick={() => {setRoleTutor(true)}}>
-                    Tutor
-                </div>
+  return (
+    <div className={`${t.components.container.page} flex items-center justify-center`}>
+      <div className={`${t.components.container.narrow} ${t.components.container.section}`}>
+        <div className="text-center">
+          <h1 className={t.typography.h1}>Create account</h1>
+          <p className={`${t.typography.muted} mt-2`}>
+            Register as a student or tutor. You can start booking immediately.
+          </p>
+        </div>
+
+        <div className={`${t.components.card.base} mt-6`}>
+          <div className="p-5 sm:p-6">
+            <RoleSwitch role={role} setRole={setRole} />
+            <div className="mt-5">
+              <RegisterForm role={role} />
             </div>
 
-            {
-                roleTutor ?
-                <TutorRegister/> :
-                <StudentRegister/>
-            }
-            
+            <div className="mt-6">
+              <div className={t.components.divider.soft} />
+              <div className="mt-4 text-center">
+                <Link to="/signin" className={t.typography.link}>
+                  Sign in instead
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
-    </div>)
+      </div>
+    </div>
+  );
 }
 
-function TutorRegister() {
-    const [fName, setFName] = useState('')
-    const [lName, setLName] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [hourlyRate, setHourlyRate] = useState(10)
-    const [currentSubject, setSubject] = useState('')
-    const [subjects, setSubjects] = useState([])
-    const [bio, setBio] = useState('')
-    const [errorMessage, setErroMessage] = useState('')
-    const navigate = useNavigate()
+function RoleSwitch({ role, setRole }) {
+  const studentCls =
+    role === "student" ? t.components.nav.linkActive : t.components.nav.link;
+  const tutorCls = role === "tutor" ? t.components.nav.linkActive : t.components.nav.link;
 
-    async function handleSubmit(e) {
-        e.preventDefault()
-        const res = await registerTutor(fName, lName, email, password, subjects, hourlyRate, bio, setErroMessage)
-        if (res) {
-            const res = await signin(email, password, accessTokenSetter, setErroMessage)
-            if (res) { navigate('/dashboard') }
-        }
-    }
-
-    function removeSubject(indexToRemove) {
-        setSubjects(prev => prev.filter((_, i) => i !== indexToRemove));
-    }
-
-    function addSubject() {
-        if (!(currentSubject in subjects) && (subject != '')) {
-            setSubjects(subjects.concat([currentSubject]))
-            setSubject('')
-        }
-    }
-
-    return <form 
-        onSubmit={handleSubmit}
-        className={'flex flex-col space-y-8 my-4 max-w-lg'}
-        >
-
-        {
-            errorMessage ?                
-            <div className={`${t.colors.status.error} rounded-xl px-4 py-3 text-center`}>{errorMessage}</div> :
-            <div></div>
-        }
-
-        <div className={`flex flex-row space-x-4`}>
-            <div>
-                <label htmlFor="fName" className={t.components.input.label}>First name</label>
-                <input 
-                    type="text" 
-                    id="fName"
-                    value={fName}
-                    onChange={(e) => setFName(e.target.value)}
-                    required
-                    placeholder='Enter your first name'
-                    className={`${t.components.input.base}`}
-                />
-            </div>
-
-            <div>
-                <label htmlFor="lName" className={t.components.input.label}>Last name</label>
-                <input 
-                    type="text" 
-                    id="lName"
-                    value={lName}
-                    onChange={(e) => setLName(e.target.value)}
-                    required
-                    placeholder='Enter your last name'
-                    className={`${t.components.input.base}`}
-                />
-            </div>
-        </div>
-
-        <label htmlFor="email" className={t.components.input.label}>Email</label>
-        <input 
-            type="text" 
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder='Enter your email'
-            className={`${t.components.input.base}`}
-        />
-        
-        <label htmlFor="password" className={t.components.input.label}>Password</label>
-        <input 
-            type="password" 
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder='Enter your password'
-            className={`${t.components.input.base}`}
-        />
-
-        <label htmlFor="price" className={t.components.input.label}>Hourly rate (£)</label>
-        <input 
-            type="number" 
-            id="hourlyRate"
-            value={hourlyRate}
-            onChange={(e) => setHourlyRate(e.target.value)}
-            required
-            placeholder='Enter your hourly rate'
-            className={`${t.components.input.base}`}
-        />
-
-        <label htmlFor="subjects" className={t.components.input.label}>Subjects</label>
-        <div className='flex flex-row gap-2'>
-            {subjects.map((subject, index) => {
-                return <button type="button" className={`${t.components.button.secondary}`} key={index} onClick={() => { removeSubject(index) }}>
-                    {subject}
-                </button>
-            })}
-        </div>
-        <div className='flex flex-row gap-4'>
-            <input 
-                type="text" 
-                id="subject"
-                value={currentSubject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder='Add one of your subjects here...'
-                className={`${t.components.input.base}`}
-            />
-            <button type="button" className={`${t.components.button.secondary}`} onClick={addSubject}><Plus/></button>
-        </div>
-
-        <div>
-            <label htmlFor="bio" className={t.components.input.label}>Bio</label>
-            <input 
-                type="text" 
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                required
-                placeholder='Tell us a bit about yourself here...'
-                className={`${t.components.input.base}`}
-            />
-        </div>
-
-        <button
-            type="submit"
-            className={`${t.components.button.primary}`}
-        >
-            Register
-        </button>
-
-        <hr className={`${t.colors.border.light}`}/>
-
-        <Link to="/signin" className={`${t.components.link} text-center`}>Sign in instead</Link>
-    </form>
+  return (
+    <div className={`${t.components.tabs.wrapper} w-full`}>
+      <button
+        type="button"
+        onClick={() => setRole("student")}
+        className={`${t.components.tabs.tab} ${role === "student" ? t.components.tabs.tabActive : ""} flex-1`}
+      >
+        Student
+      </button>
+      <button
+        type="button"
+        onClick={() => setRole("tutor")}
+        className={`${t.components.tabs.tab} ${role === "tutor" ? t.components.tabs.tabActive : ""} flex-1`}
+      >
+        Tutor
+      </button>
+    </div>
+  );
 }
 
-function StudentRegister() {
-    const [fName, setFName] = useState('')
-    const [lName, setLName] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [errorMessage, setErroMessage] = useState('')
-    const navigate = useNavigate()
+function RegisterForm({ role }) {
+  const nav = useNavigate();
+  const { setMe } = useAuth();
 
-    async function handleSubmit(e) {
-        e.preventDefault()
-        const res = await registerStudent(fName, lName, email, password, setErroMessage)
-        if (res) {
-            const res = await signin(email, password, setErroMessage)
-            if (res) { navigate('/dashboard') }
-        }
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // tutor-only
+  const [hourlyRate, setHourlyRate] = useState(15);
+  const [bio, setBio] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [subjectDraft, setSubjectDraft] = useState("");
+
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const isTutor = role === "tutor";
+
+  const canAddSubject = useMemo(() => {
+    const s = subjectDraft.trim();
+    if (!s) return false;
+    return !subjects.some((x) => x.toLowerCase() === s.toLowerCase());
+  }, [subjectDraft, subjects]);
+
+  function addSubject() {
+    if (!canAddSubject) return;
+    setSubjects((prev) => prev.concat([subjectDraft.trim()]));
+    setSubjectDraft("");
+  }
+
+  function removeSubject(idx) {
+    setSubjects((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (submitting) return;
+
+    setSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      let ok = false;
+
+      if (isTutor) {
+        ok = await registerTutor(
+          firstName,
+          lastName,
+          email,
+          password,
+          subjects,
+          hourlyRate,
+          bio,
+          setErrorMessage
+        );
+      } else {
+        ok = await registerStudent(firstName, lastName, email, password, setErrorMessage);
+      }
+
+      if (!ok) return;
+
+      // sign in + setMe flow (your current working fix)
+      const tokenOk = await signin(email, password, setErrorMessage, setMe);
+      if (tokenOk) nav("/dashboard");
+    } finally {
+      setSubmitting(false);
     }
+  }
 
-    return <form 
-        onSubmit={handleSubmit}
-        className={'flex flex-col space-y-8 my-4'}
-        >
-
-        {
-            errorMessage ?                
-            <div className={`${t.colors.status.error} rounded-xl px-4 py-3 text-center`}>{errorMessage}</div> :
-            <div></div>
-        }
-
-        <div className={`flex flex-row space-x-4`}>
-            <div>
-                <label htmlFor="fName" className={t.components.input.label}>First name</label>
-                <input 
-                    type="text" 
-                    id="fName"
-                    value={fName}
-                    onChange={(e) => setFName(e.target.value)}
-                    required
-                    placeholder='Enter your first name'
-                    className={`${t.components.input.base}`}
-                />
-            </div>
-
-            <div>
-                <label htmlFor="lName" className={t.components.input.label}>Last name</label>
-                <input 
-                    type="text" 
-                    id="lName"
-                    value={lName}
-                    onChange={(e) => setLName(e.target.value)}
-                    required
-                    placeholder='Enter your last name'
-                    className={`${t.components.input.base}`}
-                />
-            </div>
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {errorMessage ? (
+        <div className={`${t.components.alert.base} ${t.components.alert.error}`}>
+          {errorMessage}
         </div>
+      ) : null}
 
-        <label htmlFor="email" className={t.components.input.label}>Email</label>
-        <input 
-            type="text" 
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="First name">
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             required
-            placeholder='Enter your email'
-            className={`${t.components.input.base}`}
-        />
-        
-        <label htmlFor="password" className={t.components.input.label}>Password</label>
-        <input 
-            type="password" 
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            className={t.components.input.soft}
+            placeholder="Jane"
+            autoComplete="given-name"
+          />
+        </Field>
+
+        <Field label="Last name">
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             required
-            placeholder='Enter your password'
-            className={`${t.components.input.base}`}
+            className={t.components.input.soft}
+            placeholder="Doe"
+            autoComplete="family-name"
+          />
+        </Field>
+      </div>
+
+      <Field label="Email">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className={t.components.input.soft}
+          placeholder="you@example.com"
+          autoComplete="email"
         />
+      </Field>
 
-        <button
-            type="submit"
-            className={`${t.components.button.primary}`}
-        >
-            Register
-        </button>
+      <Field label="Password">
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className={t.components.input.soft}
+          placeholder="••••••••"
+          autoComplete="new-password"
+        />
+      </Field>
 
-        <hr className={`${t.colors.border.light}`}/>
+      {isTutor ? (
+        <>
+          <div className={`${t.components.card.muted}`}>
+            <div className="p-4 sm:p-5 flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Hourly rate (£)">
+                  <input
+                    type="number"
+                    value={hourlyRate}
+                    min={1}
+                    onChange={(e) => setHourlyRate(Number(e.target.value))}
+                    required
+                    className={t.components.input.soft}
+                    placeholder="20"
+                  />
+                </Field>
 
-        <Link to="/signin" className={`${t.components.link} text-center`}>Sign in instead</Link>
+                <Field label="Subjects (add)">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={subjectDraft}
+                      onChange={(e) => setSubjectDraft(e.target.value)}
+                      className={t.components.input.soft}
+                      placeholder="e.g. Maths"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addSubject();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addSubject}
+                      disabled={!canAddSubject}
+                      className={`${t.components.button.icon} ${t.components.button.iconMd}`}
+                      title="Add subject"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </Field>
+              </div>
+
+              <div>
+                <div className={t.components.input.label}>Selected subjects</div>
+                {subjects.length === 0 ? (
+                  <div className={t.typography.muted}>Add at least one subject.</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {subjects.map((s, idx) => (
+                      <span
+                        key={`${s}-${idx}`}
+                        className={`${t.components.badge.base} ${t.components.badge.neutral} inline-flex items-center gap-2`}
+                      >
+                        {s}
+                        <button
+                          type="button"
+                          onClick={() => removeSubject(idx)}
+                          className="text-slate-400 hover:text-slate-700 transition-colors"
+                          aria-label={`Remove ${s}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Field label="Bio">
+                <textarea
+                  rows={4}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  required
+                  className={t.components.input.soft}
+                  placeholder="Tell students what you can help with…"
+                />
+                <div className={t.components.input.helper}>
+                  Keep it short. You can edit later.
+                </div>
+              </Field>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={submitting || (isTutor && subjects.length === 0)}
+        className={`${t.components.button.base} ${t.components.button.primary} ${t.components.button.lg} w-full`}
+      >
+        {submitting ? "Creating account…" : "Register"}
+      </button>
+
+      {isTutor && subjects.length === 0 ? (
+        <div className={t.typography.faint}>Tutors must add at least one subject.</div>
+      ) : null}
     </form>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className={t.components.input.label}>{label}</label>
+      {children}
+    </div>
+  );
 }

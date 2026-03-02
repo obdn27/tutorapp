@@ -182,3 +182,20 @@ export async function createBooking(payload) {
     const res = await dataClient.post("book", payload)
     return res.data
 }
+
+export async function getTutors() {
+  const res = await dataClient.get("/tutors");
+  return res.data;
+}
+
+export async function getTutorAvailability({ tutorId, startTs, endTs, slotS = 1800 }) {
+  const res = await dataClient.get("/availability", {
+    params: { tutor_id: tutorId, start_ts: startTs, end_ts: endTs, slot_s: slotS },
+  });
+  return res.data; // { intervals: [{start_ts,end_ts}] }
+}
+
+export async function canBook({ tutor_id, start_ts, end_ts }) {
+  const res = await dataClient.post("/can_book", { tutor_id, start_ts, end_ts });
+  return res.data; // { ok, reason }
+}
