@@ -29,6 +29,7 @@ def get_cors_origins() -> list[str]:
     return origins
 
 cors_origins = get_cors_origins()
+print("CURRENT CORS ORIGINS:", cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
