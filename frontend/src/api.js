@@ -2,13 +2,17 @@ import axios from 'axios'
 
 const APIURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
+console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
+console.log("MODE =", import.meta.env.MODE);
+console.log("BASE_URL =", import.meta.env.BASE_URL);
+
 export const endpoints = {
     'refresh': APIURL + '/auth/refresh',
     'signin': APIURL + '/auth/signin',
     'signout': APIURL + '/auth/signout',
     'registerTutor': APIURL + '/auth/register_tutor',
     'registerStudent': APIURL + '/auth/register_student',
-    'sessions': APIURL + '/data/sessions',
+    'sessions': APIURL + '/data/sessions', 
     'tutors': APIURL + '/data/tutors',
     'book': APIURL + '/data/book',
     'bookings': APIURL + '/data/bookings',

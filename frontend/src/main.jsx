@@ -6,12 +6,12 @@ import App from './components/App.jsx'
 import { HashRouter as Router } from "react-router-dom"
 import { AuthProvider } from './Auth.jsx';
 
-const basename = import.meta.env.BASE_URL;
+// const basename = import.meta.env.BASE_URL;
 const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')).render(
 	<QueryClientProvider client={queryClient}>
-		<Router basename={basename}>
+		<Router>
 			<AuthProvider>
 				<App />
 			</AuthProvider>

@@ -4,7 +4,7 @@ from db import get_user
 
 import time
 from datetime import datetime, timedelta, timezone
-from jose import jwt, ExpiredSignatureError
+from jose import jwt, ExpiredSignatureError, JWSError
 import secrets
 
 from fastapi import Header, HTTPException
@@ -24,7 +24,6 @@ def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
 def authenticate_user(givenEmail, givenPassword):
-    print(givenEmail, givenPassword)
     user = get_user(givenEmail)
     if not user:
         return None
@@ -43,7 +42,6 @@ def create_refresh_token():
     return secrets.token_urlsafe(32)
 
 def hash_refresh_token(token):
-    print("peppertoken", PEPPER, token)
     return hashlib.sha256((PEPPER + token).encode("utf-8")).hexdigest()
 
 def now_ts():
@@ -69,5 +67,7 @@ def verify_access_token(authorization: str = Header(None)):
         payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
     except ExpiredSignatureError:
         raise HTTPException(401, detail="Session expired")
+    except JWSError:
+        raise HTTPException(422, detail="Bearer probably null")
     
     return int(payload["sub"])
