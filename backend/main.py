@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException, Response, Cookie, Depends
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3, time
-
-import db
+import db, os, sqlite3, time
 from availability import compute_availability
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from auth import (
     authenticate_user,
     pwd_context,
@@ -21,9 +23,16 @@ SLOT_LENGTH = 30 * 60
 
 app = FastAPI()
 
+def get_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "")
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    return origins
+
+cors_origins = get_cors_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=cors_origins,   # empty list = blocks all (good fail-closed)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

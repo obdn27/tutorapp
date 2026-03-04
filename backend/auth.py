@@ -1,4 +1,4 @@
-import hashlib
+import hashlib, os
 from passlib.context import CryptContext
 from db import get_user
 
@@ -8,6 +8,14 @@ from jose import jwt, ExpiredSignatureError
 import secrets
 
 from fastapi import Header, HTTPException
+
+PEPPER = os.getenv("PEPPER")
+JWT_SECRET = os.getenv("JWT_SECRET")
+
+if not PEPPER:
+    raise RuntimeError("Missing PEPPER env var")
+if not JWT_SECRET:
+    raise RuntimeError("Missing JWT_SECRET env var")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 refresh_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
@@ -26,9 +34,6 @@ def authenticate_user(givenEmail, givenPassword):
     
     return user
 
-
-PEPPER = "67ydlkgj698q"
-JWT_SECRET = "123"
 JWT_ALG = "HS256"
 ACCESS_MINUTES = 1
 REFRESH_DAYS = 30
