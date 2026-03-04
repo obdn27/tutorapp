@@ -17,6 +17,7 @@ from auth import (
 from req_schemas import *
 
 SECONDS_PER_DAY = 24 * 3600
+SLOT_LENGTH = 30 * 60
 
 app = FastAPI()
 
@@ -127,6 +128,25 @@ def logout(response: Response, refresh_token: str | None = Cookie(default=None))
     response.delete_cookie(key="refresh_token", path="/auth/refresh")
     return {"message": "ok"}
 
+@app.post("/auth/change_password")
+def change_password(payload: ChangePasswordRequest, user_id: int = Depends(verify_access_token)):
+    # basic rule (you can add more later)
+    if payload.new_password == payload.current_password:
+        raise HTTPException(status_code=400, detail="New password must be different")
+
+    existing = db.get_pwd_hash(user_id)
+    if not existing:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    if not pwd_context.verify(payload.current_password, existing):
+        # 403 fits your pattern: authed but not allowed because wrong current password
+        raise HTTPException(status_code=403, detail="Current password incorrect")
+
+    new_hash = pwd_context.hash(payload.new_password)
+    db.set_pwd_hash(user_id, new_hash)
+
+    return {"message": "ok"}
+
 # ---------- public data ----------
 
 @app.get("/data/tutors")
@@ -164,7 +184,9 @@ def get_tutor_availability(
 
 @app.get("/data/me")
 def get_my_info(user_id: int = Depends(authed_user_id)):
-    return db.get_my_info(user_id)
+    res = db.get_my_info(user_id)
+    res['slot_length'] = SLOT_LENGTH
+    return res
 
 @app.get("/data/bookings")
 def list_bookings(
@@ -354,6 +376,7 @@ def add_off_time(payload: OffTimeRequest, user_id: int = Depends(authed_user_id)
 
 @app.get("/data/off_time")
 def get_my_off_times(start_ts: int, end_ts: int, user_id: int = Depends(authed_user_id)):
+    print(start_ts, end_ts, user_id)
     require_tutor(user_id)
     validate_window(start_ts, end_ts, max_days=90, label="window")
     return db.get_off_times(user_id, start_ts, end_ts)
@@ -361,6 +384,8 @@ def get_my_off_times(start_ts: int, end_ts: int, user_id: int = Depends(authed_u
 @app.delete("/data/off_time/{off_id}")
 def delete_my_off_time(off_id: int, user_id: int = Depends(authed_user_id)):
     require_tutor(user_id)
+
+    print(off_id, user_id)
 
     row = db.get_off_time_by_id(off_id)
     if not row:
@@ -446,6 +471,9 @@ def reschedule_booking(
     user_id: int = Depends(verify_access_token),
 ):
     b = db.get_booking_by_id(booking_id)
+
+    print("payload, b: ", payload, b)
+
     if not b:
         raise HTTPException(status_code=404, detail="Booking not found")
 
@@ -472,3 +500,49 @@ def reschedule_booking(
     db.update_booking_status(booking_id, "requested")
 
     return {"message": "ok"}
+
+# ---------- booking messages ----------
+
+@app.get("/data/bookings/{booking_id}/messages")
+def get_booking_messages(
+    booking_id: int,
+    after_id: int | None = None,
+    limit: int = 50,
+    user_id: int = Depends(authed_user_id),
+):
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=400, detail="Invalid limit")
+
+    b = db.get_booking_by_id(booking_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if user_id != b["tutor_id"] and user_id != b["student_id"]:
+        # hide existence
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    msgs = db.get_messages_for_booking(booking_id, limit=limit, after_id=after_id)
+    return {"messages": msgs}
+
+
+@app.post("/data/bookings/{booking_id}/messages")
+def send_booking_message(
+    booking_id: int,
+    payload: SendMessageRequest,
+    user_id: int = Depends(authed_user_id),
+):
+    msg = (payload.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Empty message")
+
+    b = db.get_booking_by_id(booking_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if user_id != b["tutor_id"] and user_id != b["student_id"]:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    created_at = int(time.time())
+    msg_id = db.create_message(booking_id, user_id, msg, created_at)
+
+    return {"message": "ok", "id": msg_id, "created_at": created_at}

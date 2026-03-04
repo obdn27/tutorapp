@@ -60,3 +60,10 @@ class TutorSubjectsRequest(BaseModel):
 class ReviewRequest(BaseModel):
     rating: int = Field(ge=1, le=5)
     comment: str | None = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=6, max_length=256)
+
+class SendMessageRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)

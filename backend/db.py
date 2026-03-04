@@ -110,6 +110,26 @@ CREATE TABLE IF NOT EXISTS reviews (
 )
 """)
 
+c.execute("""
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    message TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+)
+""")
+
+c.execute("""
+CREATE INDEX IF NOT EXISTS idx_messages_booking_created
+ON messages(booking_id, created_at)
+""")
+
+c.execute("""
+CREATE INDEX IF NOT EXISTS idx_messages_booking_id
+ON messages(booking_id)
+""")
+
 # ---------- users ----------
 
 def create_user(fName: str, lName: str, email: str, role: int, pwdHash: str) -> int:
@@ -137,10 +157,26 @@ def get_user_role(user_id: int) -> int | None:
 def get_my_info(user_id: int) -> dict:
     with locked_db():
         row = c.execute(
-            "SELECT role, first_name, last_name, email FROM users WHERE id = ?",
+            "SELECT id, role, first_name, last_name, email FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
     return dict(row)
+
+def get_pwd_hash(user_id: int) -> str | None:
+    with locked_db():
+        row = c.execute(
+            "SELECT pwd_hash FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+    return row["pwd_hash"] if row else None
+
+def set_pwd_hash(user_id: int, new_hash: str) -> None:
+    with locked_db():
+        c.execute(
+            "UPDATE users SET pwd_hash = ? WHERE id = ?",
+            (new_hash, user_id),
+        )
+        conn.commit()
 
 # ---------- sessions ----------
 
@@ -626,3 +662,81 @@ def update_booking_time(booking_id: int, start_ts: int, end_ts: int) -> None:
             (start_ts, end_ts, booking_id),
         )
         conn.commit()
+
+def user_can_access_booking(user_id: int, booking_id: int) -> bool:
+    with locked_db():
+        row = c.execute(
+            """
+            SELECT 1
+            FROM bookings
+            WHERE id = ?
+              AND (student_id = ? OR tutor_id = ?)
+            LIMIT 1
+            """,
+            (booking_id, user_id, user_id),
+        ).fetchone()
+    return row is not None
+
+
+def create_message(booking_id: int, user_id: int, message: str, created_at: int) -> int:
+    with locked_db():
+        c.execute(
+            """
+            INSERT INTO messages (booking_id, user_id, message, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (booking_id, user_id, message, created_at),
+        )
+        conn.commit()
+        return int(c.lastrowid)
+
+
+def get_messages_for_booking(
+    booking_id: int,
+    limit: int = 50,
+    after_id: int | None = None,
+) -> list[dict]:
+    if limit < 1:
+        limit = 1
+    if limit > 200:
+        limit = 200
+
+    with locked_db():
+        if after_id is None:
+            rows = c.execute(
+                """
+                SELECT
+                    m.id, m.booking_id, m.user_id, m.message, m.created_at,
+                    u.first_name AS user_first_name,
+                    u.last_name  AS user_last_name,
+                    u.role       AS user_role
+                FROM messages m
+                JOIN users u ON u.id = m.user_id
+                WHERE m.booking_id = ?
+                ORDER BY m.id DESC
+                LIMIT ?
+                """,
+                (booking_id, limit),
+            ).fetchall()
+
+            # return chronological (oldest -> newest)
+            return [dict(r) for r in rows][::-1]
+
+        rows = c.execute(
+            """
+            SELECT
+                m.id, m.booking_id, m.user_id, m.message, m.created_at,
+                u.first_name AS user_first_name,
+                u.last_name  AS user_last_name,
+                u.role       AS user_role
+            FROM messages m
+            JOIN users u ON u.id = m.user_id
+            WHERE m.booking_id = ?
+              AND m.id > ?
+            ORDER BY m.id ASC
+            LIMIT ?
+            """,
+            (booking_id, int(after_id), limit),
+        ).fetchall()
+
+        return [dict(r) for r in rows]

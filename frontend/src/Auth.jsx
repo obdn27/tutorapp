@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
                 try {
                     const user = await getMe()
                     setMe(user)
-                    navigate('/dashboard')
+                    // navigate('/dashboard')
                 } catch {
                     setMe(null)
                 }

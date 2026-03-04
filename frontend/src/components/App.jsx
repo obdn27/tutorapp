@@ -1,30 +1,47 @@
 import { useEffect } from "react";
-import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
-import { Home, Search, LogOut } from "lucide-react";
+import { Routes, Route, useNavigate, Navigate, Outlet, useLocation} from "react-router-dom";
+import { Home, Search, LogOut, User, CalendarPlus } from "lucide-react";
 
 import { lightTheme as t } from "../assets/theme.js";
 import SignIn from "../pages/SignIn.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 import NewRegister from "../pages/NewRegister.jsx";
-import Book from "../pages/Book.jsx";
+import Tutors from "../pages/Tutors.jsx";
+import Profile from "../pages/Profile.jsx";
+import Bookings from "../pages/Bookings.jsx";
+
 
 import { useAuth } from "../Auth.jsx";
 import { signout, setNavigator } from "../api.js";
 
-function ProtectedRoute({ children }) {
-	const { me, refreshing } = useAuth();
 
-	if (refreshing) {
-		return (
-			<div className={`${t.components.container.page} flex items-center justify-center`}>
-				<div className={t.typography.muted}>Loading…</div>
-			</div>
-		);
+export function ProtectedRoute({children}) {
+	const { me, loading } = useAuth();
+	const loc = useLocation();
+
+	if (loading) {
+		return null;
+	} else if (!loading && me) {
+		return <>{children}</>
+	} else if (!loading & !me) {
+		return <Navigate to="/signin" state={{from: loc}} replace />;
 	}
-
-	if (!me) return <Navigate to="/signin" replace />;
-	return children;
 }
+
+// function ProtectedRoute({ children }) {
+// 	const { me, refreshing } = useAuth();
+
+// 	if (refreshing) {
+// 		return (
+// 			<div className={`${t.components.container.page} flex items-center justify-center`}>
+// 				<div className={t.typography.muted}>Loading…</div>
+// 			</div>
+// 		);
+// 	}
+
+// 	if (!me) return <Navigate to="/signin" replace />;
+// 	return children;
+// }
 
 function AppShell({ children }) {
 	const navigate = useNavigate()
@@ -58,8 +75,24 @@ function AppShell({ children }) {
 								onClick={() => navigate("/book")}
 								className={`${t.components.nav.link} flex items-center gap-2 justify-start`}
 							>
+								<CalendarPlus className="w-5 h-5" />
+								Find tutors
+							</button>
+
+							<button
+								onClick={() => navigate("/profile")}
+								className={`${t.components.nav.link} flex items-center gap-2 justify-start`}
+							>
+								<User className="w-5 h-5" />
+								Profile
+							</button>
+
+							<button
+								onClick={() => navigate("/bookings")}
+								className={`${t.components.nav.link} flex items-center gap-2 justify-start`}
+							>
 								<Search className="w-5 h-5" />
-								Make bookings
+								View bookings
 							</button>
 						</nav>
 
@@ -75,7 +108,7 @@ function AppShell({ children }) {
 					</aside>
 				) : null}
 
-				<main className="flex-1 min-w-0">
+				<main className="flex-1 min-w-0 h-screen overflow-y-auto">
 					{children}
 				</main>
 			</div>
@@ -108,7 +141,23 @@ export default function App() {
 					path="/book"
 					element={
 						<ProtectedRoute>
-							<Book />
+							<Tutors />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/profile"
+					element={
+						<ProtectedRoute>
+							<Profile />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/bookings"
+					element={
+						<ProtectedRoute>
+							<Bookings />
 						</ProtectedRoute>
 					}
 				/>
