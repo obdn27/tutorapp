@@ -85,8 +85,8 @@ async def signin(req: LoginRequest, response: Response):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # TODO true in prod (HTTPS)
-        samesite="lax",
+        secure=True,  # TODO true in prod (HTTPS)
+        samesite="none",
         path="/auth/refresh",
         max_age=REFRESH_DAYS * SECONDS_PER_DAY,
     )
@@ -394,8 +394,6 @@ def get_my_off_times(start_ts: int, end_ts: int, user_id: int = Depends(authed_u
 @app.delete("/data/off_time/{off_id}")
 def delete_my_off_time(off_id: int, user_id: int = Depends(authed_user_id)):
     require_tutor(user_id)
-
-    print(off_id, user_id)
 
     row = db.get_off_time_by_id(off_id)
     if not row:

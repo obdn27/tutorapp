@@ -57,7 +57,6 @@ def create_access_token(user_id):
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
 def verify_access_token(authorization: str = Header(None)):
-    print("authorization:", authorization)
     if authorization is None:
         return "No header found"
     
