@@ -4,7 +4,7 @@ import string
 import requests
 from datetime import datetime, timedelta, timezone
 
-API = "http://localhost:8000"
+API = "https://tutorapp-r5kb.onrender.com"
 
 REGISTER_TUTOR = f"{API}/auth/register_tutor"
 SIGNIN = f"{API}/auth/signin"
