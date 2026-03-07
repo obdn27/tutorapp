@@ -4,7 +4,7 @@ from db import get_user
 
 import time
 from datetime import datetime, timedelta, timezone
-from jose import jwt, ExpiredSignatureError, JWSError
+from jose import jwt, ExpiredSignatureError, JWSError, JWTError
 import secrets
 
 from fastapi import Header, HTTPException
@@ -64,9 +64,9 @@ def verify_access_token(authorization: str = Header(None)):
 
     try:
         payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
+        return int(payload["sub"])
     except ExpiredSignatureError:
         raise HTTPException(401, detail="Session expired")
-    except JWSError:
+    except JWSError or JWTError:
         raise HTTPException(422, detail="Bearer probably null")
     
-    return int(payload["sub"])
