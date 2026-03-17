@@ -239,7 +239,6 @@ function TutorProfileEditor() {
   const [subjects, setSubjects] = useState([]);
   const [newSubject, setNewSubject] = useState("");
 
-  // hydrate once (don’t clobber ongoing edits)
   useMemo(() => {
     const d = tutorQ.data;
     if (!d) return;
