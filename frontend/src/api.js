@@ -10,6 +10,7 @@ export const endpoints = {
     'refresh': APIURL + '/auth/refresh',
     'signin': APIURL + '/auth/signin',
     'signout': APIURL + '/auth/signout',
+    'changePassword': APIURL + '/auth/change_password',
     'registerTutor': APIURL + '/auth/register_tutor',
     'registerStudent': APIURL + '/auth/register_student',
     'sessions': APIURL + '/data/sessions', 
@@ -259,7 +260,11 @@ export async function putTutorSubjects(payload) {
 }
 
 export async function changePassword(payload) {
-    const res = await axios.post('/auth/change_password', payload, {headers: {Authorization: `Bearer ${accessToken}`}});
+    const res = await axios.post(
+        endpoints.changePassword,
+        payload,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
     return res.data;
 }
 
