@@ -1,8 +1,8 @@
 # TutorApp
 
-A full-stack tutoring marketplace prototype built with React, FastAPI, and SQLite.
+A full-stack tutoring platform prototype built with React, FastAPI, and SQLite.
 
-Students can browse tutors, view availability, request bookings, reschedule sessions, leave reviews, and message tutors. Tutors can manage their profile, subjects, weekly hours, blocked-off time, and booking requests from the same app.
+Students can browse tutors, view availability, request bookings, reschedule sessions, and message tutors. Tutors can manage their profile, subjects, weekly hours, blocked-off time, and booking requests from the same app.
 
 ## Stack
 
@@ -19,7 +19,6 @@ Students can browse tutors, view availability, request bookings, reschedule sess
 - Booking requests, status updates, and rescheduling
 - Tutor schedule management
 - Booking-based messaging
-- Post-session reviews and ratings
 
 ## Project Structure
 
@@ -68,11 +67,15 @@ JWT_SECRET=your_jwt_secret
 CORS_ORIGINS=http://localhost:5173,http://localhost:8000,http://127.0.0.1:8000
 ```
 
+Add any other origins as required, e.g. from a Render server
+
 The frontend can optionally use:
 
 ```env
 VITE_API_URL=http://localhost:8000
 ```
+
+if the server is being locally hosted.
 
 If `VITE_API_URL` is not set, the frontend already defaults to `http://localhost:8000`.
 
@@ -82,11 +85,11 @@ If `VITE_API_URL` is not set, the frontend already defaults to `http://localhost
 - `/data/tutors`: public tutor listings
 - `/data/availability`: computed tutor availability
 - `/data/book`: booking creation
-- `/data/bookings/*`: booking list, detail, status, reschedule, review, messages
+- `/data/bookings/*`: booking list, detail, status, reschedule, messages
 - `/data/tutor/me`: tutor profile management
 - `/data/hours` and `/data/off_time`: tutor schedule management
 
 ## Notes
-
+    
 - SQLite data is stored in `backend/users.db`.
 - The frontend includes a GitHub Pages deploy script via `npm run deploy`.

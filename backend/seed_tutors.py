@@ -1,15 +1,15 @@
+import argparse
+import os
 import random
 import time
-import string
 import requests
 from datetime import datetime, timedelta, timezone
 
-API = "https://tutorapp-r5kb.onrender.com"
-
-REGISTER_TUTOR = f"{API}/auth/register_tutor"
-SIGNIN = f"{API}/auth/signin"
-SET_HOURS = f"{API}/data/hours"
-ADD_OFFTIME = f"{API}/data/off_time"
+DEFAULT_TARGETS = {
+    "render": "https://tutorapp-r5kb.onrender.com",
+    "localhost": "http://localhost:8000",
+    "local": "http://localhost:8000",
+}
 
 # ---------- config ----------
 N_TUTORS = 20
@@ -42,6 +42,30 @@ BIO_TEMPLATES = [
 ]
 
 # ---------- helpers ----------
+
+def build_endpoints(api_base: str) -> dict[str, str]:
+    api = api_base.rstrip("/")
+    return {
+        "register_tutor": f"{api}/auth/register_tutor",
+        "signin": f"{api}/auth/signin",
+        "set_hours": f"{api}/data/hours",
+        "add_offtime": f"{api}/data/off_time",
+    }
+
+def resolve_api_base(target: str | None, api: str | None) -> str:
+    if api:
+        return api.rstrip("/")
+    if target:
+        resolved = DEFAULT_TARGETS.get(target.lower())
+        if resolved:
+            return resolved
+        return target.rstrip("/")
+
+    env_api = os.getenv("SEED_API_URL")
+    if env_api:
+        return env_api.rstrip("/")
+
+    return DEFAULT_TARGETS["render"]
 
 def rand_email(i: int) -> str:
     # stable-ish emails so you can rerun by changing prefix if needed
@@ -98,7 +122,7 @@ def post_json(url, payload, headers=None, cookies=None, timeout=10):
     r = requests.post(url, json=payload, headers=headers or {}, cookies=cookies or {}, timeout=timeout)
     return r
 
-def seed_one_tutor(i: int):
+def seed_one_tutor(i: int, endpoints: dict[str, str]):
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
     email = rand_email(i)
@@ -108,7 +132,7 @@ def seed_one_tutor(i: int):
     bio = rand_bio(subjects)
 
     # 1) register
-    r = post_json(REGISTER_TUTOR, {
+    r = post_json(endpoints["register_tutor"], {
         "first_name": first,
         "last_name": last,
         "email": email,
@@ -118,12 +142,14 @@ def seed_one_tutor(i: int):
         "bio": bio,
     })
 
-    if r.status_code != 200:
+    if r.status_code not in (200, 409):
         return False, f"register failed {email}: {r.status_code} {r.text}"
+
+    was_created = r.status_code == 200
 
     # 2) signin to get cookie + access token
     s = requests.Session()
-    r2 = s.post(SIGNIN, json={"email": email, "password": pwd}, timeout=10)
+    r2 = s.post(endpoints["signin"], json={"email": email, "password": pwd}, timeout=10)
     if r2.status_code != 200:
         return False, f"signin failed {email}: {r2.status_code} {r2.text}"
 
@@ -136,7 +162,12 @@ def seed_one_tutor(i: int):
     # 3) set weekly hours
     hours = weekday_hours_pattern()
     for wd, (start_s, end_s) in hours.items():
-        rh = post_json(SET_HOURS, {"weekday": wd, "start_s": start_s, "end_s": end_s}, headers=headers, cookies=s.cookies.get_dict())
+        rh = post_json(
+            endpoints["set_hours"],
+            {"weekday": wd, "start_s": start_s, "end_s": end_s},
+            headers=headers,
+            cookies=s.cookies.get_dict(),
+        )
         if rh.status_code != 200:
             return False, f"set_hours failed {email} wd={wd}: {rh.status_code} {rh.text}"
 
@@ -154,7 +185,7 @@ def seed_one_tutor(i: int):
         end = start + timedelta(hours=duration_h)
 
         ro = post_json(
-            ADD_OFFTIME,
+            endpoints["add_offtime"],
             {"start_ts": utc_ts(start), "end_ts": utc_ts(end)},
             headers=headers,
             cookies=s.cookies.get_dict()
@@ -163,20 +194,46 @@ def seed_one_tutor(i: int):
             # don’t hard fail; offTimes can overlap (you haven’t constrained overlaps)
             pass
 
-    return True, f"seeded {email} ({first} {last})"
+    action = "seeded" if was_created else "updated existing"
+    return True, f"{action} {email} ({first} {last})"
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Seed tutor accounts and availability data.")
+    parser.add_argument(
+        "--target",
+        default=None,
+        help="Named target or URL. Supported names: render, localhost.",
+    )
+    parser.add_argument(
+        "--api",
+        default=None,
+        help="Explicit API base URL, e.g. http://localhost:8000",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=N_TUTORS,
+        help=f"How many tutors to seed. Default: {N_TUTORS}",
+    )
+    return parser.parse_args()
 
 def main():
+    args = parse_args()
+    api_base = resolve_api_base(args.target, args.api)
+    endpoints = build_endpoints(api_base)
+
     random.seed(42)
+    print(f"Seeding tutors via {api_base}")
 
     ok = 0
-    for i in range(1, N_TUTORS + 1):
-        success, msg = seed_one_tutor(i)
+    for i in range(1, args.count + 1):
+        success, msg = seed_one_tutor(i, endpoints)
         print(msg)
         if success:
             ok += 1
         time.sleep(0.05)
 
-    print(f"\nDone: {ok}/{N_TUTORS} tutors seeded.")
+    print(f"\nDone: {ok}/{args.count} tutors processed.")
 
 if __name__ == "__main__":
     main()
