@@ -13,15 +13,87 @@ from schema import SCHEMA_STATEMENTS
 
 load_dotenv()
 
-conn = psycopg.connect(
-    os.environ.get("SUPABASE_DB_URL"),
-    sslmode="require",
-    sslrootcert="/etc/ssl/certs/supabase-ca.crt",
-    row_factory=psycopg.rows.dict_row,
-)
-
-c = conn.cursor()
 lock = threading.Lock()
+DB_URL = os.environ.get("SUPABASE_DB_URL")
+SSL_ROOT_CERT = "/etc/ssl/certs/supabase-ca.crt"
+_conn = None
+_cursor = None
+
+
+def _new_connection():
+    return psycopg.connect(
+        DB_URL,
+        sslmode="require",
+        sslrootcert=SSL_ROOT_CERT,
+        row_factory=psycopg.rows.dict_row,
+    )
+
+
+def _reset_connection():
+    global _conn, _cursor
+    try:
+        if _cursor is not None:
+            _cursor.close()
+    except Exception:
+        pass
+    try:
+        if _conn is not None:
+            _conn.close()
+    except Exception:
+        pass
+
+    _conn = _new_connection()
+    _cursor = _conn.cursor()
+
+
+def _ensure_connection():
+    global _conn, _cursor
+    with lock:
+        if _conn is None or _conn.closed or _cursor is None or _cursor.closed:
+            _reset_connection()
+        return _conn, _cursor
+
+
+class CursorProxy:
+    def execute(self, query, params=None):
+        try:
+            _, cursor = _ensure_connection()
+            if params is None:
+                return cursor.execute(query)
+            return cursor.execute(query, params)
+        except psycopg.OperationalError:
+            with lock:
+                _reset_connection()
+                cursor = _cursor
+                if params is None:
+                    return cursor.execute(query)
+                return cursor.execute(query, params)
+
+
+class ConnectionProxy:
+    def commit(self):
+        try:
+            conn, _ = _ensure_connection()
+            conn.commit()
+        except psycopg.OperationalError:
+            with lock:
+                _reset_connection()
+
+    def rollback(self):
+        try:
+            conn, _ = _ensure_connection()
+            conn.rollback()
+        except psycopg.OperationalError:
+            with lock:
+                _reset_connection()
+
+    def cursor(self):
+        _, cursor = _ensure_connection()
+        return cursor
+
+
+conn = ConnectionProxy()
+c = CursorProxy()
 
 SECONDS_PER_DAY = 24 * 3600
 ACTIVE_BOOKING_STATUSES = ("requested", "confirmed")
