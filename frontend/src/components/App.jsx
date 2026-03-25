@@ -12,7 +12,7 @@ import Bookings from "../pages/Bookings.jsx";
 
 
 import { useAuth } from "../Auth.jsx";
-import { signout, setNavigator } from "../api.js";
+import { setNavigator } from "../api.js";
 
 
 export function ProtectedRoute({children}) {
@@ -45,7 +45,7 @@ export function ProtectedRoute({children}) {
 
 function AppShell({ children }) {
 	const navigate = useNavigate()
-	const { me } = useAuth()
+	const { me, signout } = useAuth()
 
 	const showSidebar = Boolean(me)
 

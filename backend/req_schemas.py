@@ -5,13 +5,13 @@ class RegisterStudentRequest(BaseModel):
     first_name: str
     last_name: str
     email: str
-    password: str
+    password: str = Field(min_length=6, max_length=256)
 
 class RegisterTutorRequest(BaseModel):
     first_name: str
     last_name: str
     email: str
-    password: str
+    password: str = Field(min_length=6, max_length=256)
     hourly_gbp: int
     subjects: List[str]
     bio: str

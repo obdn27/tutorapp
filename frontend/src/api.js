@@ -35,18 +35,18 @@ export const dataClient = axios.create({
 
 let navigator = null
 let accessToken = null
-let onAuthFail = null
+let refreshPromise = null
+let signingOut = false
 
 export function setStoredAccessToken(token) {
     accessToken = token
+    if (token) {
+        signingOut = false
+    }
 }
 
 export function getStoredAccessToken() {
     return accessToken
-}
-
-export function setAuthFailHandler(fn) {
-    onAuthFail = fn
 }
 
 export function setNavigator(setter) {
@@ -72,41 +72,74 @@ dataClient.interceptors.response.use(
         const original = err.config
         console.log(original, err)
         if (!err.response) throw err
+        if (!original) throw err
+
+        const status = err.response?.status
+        if (status !== 401) {
+            throw err
+        }
+
+        if (signingOut) {
+            throw err
+        }
 
         if (original._retry) {
             setStoredAccessToken(null)
-            onAuthFail?.()
             throw err
         }
         original._retry = true
 
         try {
             const newToken = await refresh()
+            if (!newToken) {
+                throw err
+            }
+            original.headers = original.headers || {}
             original.headers.Authorization = `Bearer ${newToken}`
             return dataClient(original)
         } catch {
             setStoredAccessToken(null)
-            onAuthFail?.()
             throw err
         }
     }
 )
 
 export async function refresh() {
+    if (signingOut) {
+        return null
+    }
+
+    if (refreshPromise) {
+        return refreshPromise
+    }
+
     try {
-        const res = await axios.post(endpoints.refresh, {}, { withCredentials: true })
-        const token = res.data?.access_token ?? null
-        setStoredAccessToken(token)
-        return token
+        refreshPromise = axios
+            .post(endpoints.refresh, {}, { withCredentials: true })
+            .then((res) => {
+                const token = res.data?.access_token ?? null
+                setStoredAccessToken(token)
+                return token
+            })
+            .catch(() => {
+                setStoredAccessToken(null)
+                navigator?.('/signin')
+                return null
+            })
+
+        return await refreshPromise
     } catch {
         setStoredAccessToken(null)
-        navigator('/signin')
+        navigator?.('/signin')
         return null
+    } finally {
+        refreshPromise = null
     }
 }
 
 export async function signin(email, password, errorMsgSetter, meSetter) {
     try {
+        signingOut = false
         const res = await axios.post(
             endpoints.signin,
             { email, password },
@@ -129,6 +162,8 @@ export async function signin(email, password, errorMsgSetter, meSetter) {
 
 export async function signout() {
     try {
+        signingOut = true
+        refreshPromise = null
         const res = await axios.post(
             endpoints.signout,
             {},
@@ -136,9 +171,12 @@ export async function signout() {
         )
 
         setStoredAccessToken(null)
-        navigator('/signin')
+        navigator?.('/signin')
         return true
-    } catch { return false }
+    } catch {
+        signingOut = false
+        return false
+    }
 }
 
 export async function registerStudent(fName, lName, email, password, errorMsgSetter) {
@@ -262,10 +300,9 @@ export async function putTutorSubjects(payload) {
 }
 
 export async function changePassword(payload) {
-    const res = await axios.post(
+    const res = await dataClient.post(
         endpoints.changePassword,
-        payload,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        payload
     );
     return res.data;
 }

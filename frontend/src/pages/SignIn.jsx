@@ -25,7 +25,7 @@ export default function SignIn() {
         <div className="text-center">
           <h1 className={t.typography.h1}>Sign in</h1>
           <p className={`${t.typography.muted} mt-2`}>
-            Welcome back. Sign in to manage your bookings.
+            Welcome back.
           </p>
         </div>
 

@@ -67,6 +67,7 @@ function RoleSwitch({ role, setRole }) {
 }
 
 function RegisterForm({ role }) {
+  const MIN_PASSWORD_LENGTH = 6;
   const nav = useNavigate();
   const { setMe } = useAuth();
 
@@ -105,6 +106,11 @@ function RegisterForm({ role }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (submitting) return;
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
 
     setSubmitting(true);
     setErrorMessage("");
@@ -188,11 +194,15 @@ function RegisterForm({ role }) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          minLength={MIN_PASSWORD_LENGTH}
           required
           className={t.components.input.soft}
           placeholder="••••••••"
           autoComplete="new-password"
         />
+        <div className={t.components.input.helper}>
+          At least {MIN_PASSWORD_LENGTH} characters.
+        </div>
       </Field>
 
       {isTutor ? (
