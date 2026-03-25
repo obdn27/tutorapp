@@ -85,7 +85,6 @@ function DashboardHeader() {
 		<div className={`${t.components.card.base} p-5 sm:p-6 flex items-start justify-between gap-4`}>
 			<div className="min-w-0">
 				<h1 className={`${t.typography.huge}`}>{title}</h1>
-				<p className={t.typography.muted}>Board + availability management.</p>
 			</div>
 
 			<div className="flex gap-2 shrink-0">

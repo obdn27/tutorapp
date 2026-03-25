@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { lightTheme as t } from "../assets/theme";
 import { signin } from "../api";
@@ -7,12 +7,16 @@ import { useAuth } from "../Auth";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { setMe } = useAuth();
+  const { me, loading, setMe } = useAuth();
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     await signin(email, password, setErrorMessage, setMe);
+  }
+
+  if (!loading && me) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -86,7 +90,7 @@ export default function SignIn() {
 
         <div className="mt-6 text-center">
           <span className={t.typography.faint}>
-            Tip: If you’re already signed in, you’ll be taken to your dashboard automatically.
+            If you’re already signed in, you’ll be taken to your dashboard automatically.
           </span>
         </div>
       </div>

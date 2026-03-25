@@ -275,9 +275,6 @@ function RegisterForm({ role }) {
                   className={t.components.input.soft}
                   placeholder="Tell students what you can help with…"
                 />
-                <div className={t.components.input.helper}>
-                  Keep it short. You can edit later.
-                </div>
               </Field>
             </div>
           </div>

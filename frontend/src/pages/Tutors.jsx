@@ -9,7 +9,7 @@ import {
 	canBook,
 	createBooking,
 } from "../api";
-import { CalendarDays, Search, User } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Search, User } from "lucide-react";
 
 // ---- constants
 const SLOT_S = 30 * 60;         // 30 min
@@ -318,23 +318,27 @@ function AvailabilityViewer({
 						</div>
 					</div>
 
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 shrink-0 flex-nowrap">
 						<button
-							className={`${t.components.button.base} ${t.components.button.neutral} ${t.components.button.sm}`}
+							className={`${t.components.button.icon} h-9 w-9 rounded-lg bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800`}
 							onClick={onPrev}
 							disabled={!canPrev}
+							aria-label="Previous week"
+							title="Previous week"
 						>
-							Prev
+							<ChevronLeft className="h-4 w-4 stroke-[2.5]" />
 						</button>
-						<span className={`${t.components.badge.base} ${t.components.badge.neutral}`}>
+						<span className="inline-flex h-9 items-center whitespace-nowrap shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
 							Week {weekOffset + 1}
 						</span>
 						<button
-							className={`${t.components.button.base} ${t.components.button.neutral} ${t.components.button.sm}`}
+							className={`${t.components.button.icon} h-9 w-9 rounded-lg bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800`}
 							onClick={onNext}
 							disabled={!canNext}
+							aria-label="Next week"
+							title="Next week"
 						>
-							Next
+							<ChevronRight className="h-4 w-4 stroke-[2.5]" />
 						</button>
 					</div>
 				</div>
@@ -573,7 +577,6 @@ function RequestBook({
 						onChange={(e) => setNotes(e.target.value)}
 						disabled={!isStudent}
 					/>
-					<div className={t.components.input.helper}>Keep it short.</div>
 				</div>
 
 				{/* Error */}

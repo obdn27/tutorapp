@@ -23,7 +23,7 @@ export function ProtectedRoute({children}) {
 		return null;
 	} else if (!loading && me) {
 		return <>{children}</>
-	} else if (!loading & !me) {
+	} else if (!loading && !me) {
 		return <Navigate to="/signin" state={{from: loc}} replace />;
 	}
 }

@@ -1,9 +1,10 @@
 fastapi[standard]
 uvicorn
 sqlalchemy
-psycopg2-binary
+psycopg[binary]
 python-jose[cryptography]
 bcrypt==4.0.1
 passlib
 python-dotenv
 email-validator
+requests

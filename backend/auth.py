@@ -58,15 +58,19 @@ def create_access_token(user_id):
 
 def verify_access_token(authorization: str = Header(None)):
     if authorization is None:
-        return "No header found"
-    
-    authorization = authorization.split(' ')[1]
+        raise HTTPException(401, detail="Missing Authorization header")
+
+    parts = authorization.split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
+        raise HTTPException(401, detail="Invalid Authorization header")
+
+    token = parts[1]
 
     try:
-        payload = jwt.decode(authorization, JWT_SECRET, algorithms=[JWT_ALG])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
         return int(payload["sub"])
     except ExpiredSignatureError:
         raise HTTPException(401, detail="Session expired")
-    except JWSError or JWTError:
-        raise HTTPException(422, detail="Bearer probably null")
+    except (JWSError, JWTError):
+        raise HTTPException(401, detail="Invalid bearer token")
     

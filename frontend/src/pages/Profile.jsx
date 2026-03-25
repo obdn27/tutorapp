@@ -58,7 +58,8 @@ export default function Profile() {
                 <TutorRatingsCard />
               </>
             ) : (
-              <StudentInfoCard />
+              // <StudentInfoCard />
+              <></>
             )}
           </div>
         </div>
@@ -76,7 +77,6 @@ function AccountCard({ me }) {
     <div className={t.components.card.base}>
       <div className="p-5 sm:p-6 border-b border-slate-100">
         <h2 className={t.typography.h3}>Account</h2>
-        <div className={t.typography.muted}>Your core account details.</div>
       </div>
 
       <div className="p-5 sm:p-6 space-y-3">
@@ -210,10 +210,6 @@ function ChangePasswordCard() {
         >
           {mut.isPending ? "Saving…" : "Change password"}
         </button>
-
-        <div className={t.typography.faint}>
-          Backend needed: POST /auth/change_password (access token required).
-        </div>
       </div>
     </div>
   );
@@ -291,9 +287,6 @@ function TutorProfileEditor() {
     <div className={t.components.card.base}>
       <div className="p-5 sm:p-6 border-b border-slate-100">
         <h2 className={t.typography.h3}>Tutor profile</h2>
-        <div className={t.typography.muted}>
-          Edit your public tutor details.
-        </div>
       </div>
 
       <div className="p-5 sm:p-6 space-y-5">

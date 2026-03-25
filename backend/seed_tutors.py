@@ -48,6 +48,8 @@ def build_endpoints(api_base: str) -> dict[str, str]:
     return {
         "register_tutor": f"{api}/auth/register_tutor",
         "signin": f"{api}/auth/signin",
+        "patch_tutor_me": f"{api}/data/tutor/me",
+        "put_tutor_subjects": f"{api}/data/tutor/me/subjects",
         "set_hours": f"{api}/data/hours",
         "add_offtime": f"{api}/data/off_time",
     }
@@ -159,7 +161,26 @@ def seed_one_tutor(i: int, endpoints: dict[str, str]):
 
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 3) set weekly hours
+    # 3) ensure tutor profile exists and is up to date for both new and existing tutors
+    rp = s.patch(
+        endpoints["patch_tutor_me"],
+        json={"hourly_gbp": hourly, "bio": bio},
+        headers=headers,
+        timeout=10,
+    )
+    if rp.status_code != 200:
+        return False, f"patch_tutor_me failed {email}: {rp.status_code} {rp.text}"
+
+    rs = s.put(
+        endpoints["put_tutor_subjects"],
+        json={"subjects": subjects},
+        headers=headers,
+        timeout=10,
+    )
+    if rs.status_code != 200:
+        return False, f"put_tutor_subjects failed {email}: {rs.status_code} {rs.text}"
+
+    # 4) set weekly hours
     hours = weekday_hours_pattern()
     for wd, (start_s, end_s) in hours.items():
         rh = post_json(
@@ -171,7 +192,7 @@ def seed_one_tutor(i: int, endpoints: dict[str, str]):
         if rh.status_code != 200:
             return False, f"set_hours failed {email} wd={wd}: {rh.status_code} {rh.text}"
 
-    # 4) add random off-times in next 14 days
+    # 5) add random off-times in next 14 days
     # (these are timestamp ranges)
     now = datetime.now(timezone.utc)
     for _ in range(random.randint(1, 4)):

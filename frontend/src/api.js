@@ -1,8 +1,11 @@
 import axios from 'axios'
 
-const APIURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+// const APIURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+// const APIURL = import.meta.env.REACT_APP_API_URL ?? 'http://localhost:8000'
+const APIURL = 'http://localhost:8000'
 
-console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
+console.log("APIURL =", APIURL);
+console.log("vite api url =", import.meta.env.VITE_API_URL);
 console.log("MODE =", import.meta.env.MODE);
 console.log("BASE_URL =", import.meta.env.BASE_URL);
 
@@ -59,7 +62,6 @@ dataClient.interceptors.request.use((config) => {
     if (accessToken) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${accessToken}`
-        console.log('attaching access token', accessToken)
     }
     return config
 })

@@ -20,6 +20,7 @@ from req_schemas import *
 
 SECONDS_PER_DAY = 24 * 3600
 SLOT_LENGTH = 30 * 60
+IS_PROD = os.getenv("APP_ENV") == "production"
 
 app = FastAPI()
 
@@ -28,12 +29,10 @@ def get_cors_origins() -> list[str]:
     origins = [o.strip() for o in raw.split(",") if o.strip()]
     return origins
 
-cors_origins = get_cors_origins()
-print("CURRENT CORS ORIGINS:", cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,   # empty list = blocks all (good fail-closed)
+    allow_origins=get_cors_origins(),   # empty list = blocks all (good fail-closed)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -85,8 +84,8 @@ async def signin(req: LoginRequest, response: Response):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,  # TODO true in prod (HTTPS)
-        samesite="none",
+        secure=IS_PROD,
+        samesite="none" if IS_PROD else "lax",
         path="/auth/refresh",
         max_age=REFRESH_DAYS * SECONDS_PER_DAY,
     )
@@ -125,7 +124,9 @@ def refresh(refresh_token: str | None = Cookie(default=None)):
     if not row:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    user_id, expires_at, revoked = row
+    user_id = int(row["user_id"])
+    expires_at = int(row["expires_at"])
+    revoked = bool(row["revoked"])
     if revoked or expires_at < ts:
         raise HTTPException(status_code=401, detail="Refresh token expired/revoked")
 
