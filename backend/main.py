@@ -30,13 +30,22 @@ def get_cors_origins() -> list[str]:
     return origins
 
 
+def get_cors_origin_regex() -> str | None:
+    raw = os.getenv("CORS_ORIGIN_REGEX", "").strip()
+    return raw or None
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),   # empty list = blocks all (good fail-closed)
+    allow_origin_regex=get_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+print("CORS_ORIGINS =", get_cors_origins())
+print("CORS_ORIGIN_REGEX =", get_cors_origin_regex())
 
 # ---------- helpers ----------
 
