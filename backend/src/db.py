@@ -9,18 +9,19 @@ from typing import Optional, Tuple
 import psycopg
 from dotenv import load_dotenv
 from psycopg import errors
-from schema import SCHEMA_STATEMENTS
+from src.schema import SCHEMA_STATEMENTS
 
 load_dotenv()
 
 lock = threading.Lock()
-DB_URL = os.environ.get("SUPABASE_DB_URL")
+DB_URL = os.environ.get("POSTGRES_URL")
 SSL_ROOT_CERT = "/etc/ssl/certs/supabase-ca.crt"
 _conn = None
 _cursor = None
 
 
 def _new_connection():
+    print(f"connecting to postgres: {DB_URL}")
     return psycopg.connect(
         DB_URL,
         sslmode="require",

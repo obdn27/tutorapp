@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException, Response, Cookie, Depends
 from fastapi.middleware.cors import CORSMiddleware
-import db, os, sqlite3, time
-from availability import compute_availability
+import src.db as db, os, sqlite3, time
+from src.availability import compute_availability
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from auth import (
+from src.auth import (
     authenticate_user,
     pwd_context,
     create_access_token,
@@ -16,7 +16,7 @@ from auth import (
     verify_access_token,
     REFRESH_DAYS,
 )
-from req_schemas import *
+from src.req_schemas import *
 
 SECONDS_PER_DAY = 24 * 3600
 SLOT_LENGTH = 30 * 60

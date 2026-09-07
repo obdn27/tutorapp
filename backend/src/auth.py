@@ -1,6 +1,6 @@
 import hashlib, os
 from passlib.context import CryptContext
-from db import get_user
+from src.db import get_user
 
 import time
 from datetime import datetime, timedelta, timezone
