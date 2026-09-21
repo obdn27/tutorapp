@@ -107,14 +107,14 @@ conn.commit()
 
 def create_user(fName: str, lName: str, email: str, role: int, pwdHash: str) -> int:
     try:
-        c.execute(
+        row = c.execute(
             "INSERT INTO users (first_name, last_name, email, pwd_hash, role) \
             VALUES (%s, %s, %s, %s, %s) \
             RETURNING id",
             (fName, lName, email, pwdHash, role),
-        )
+        ).fetchone()
         conn.commit()
-        return int(c.fetchone()["id"])
+        return int(row["id"])
     except errors.IntegrityError:
         conn.rollback()
         return -1
@@ -615,16 +615,16 @@ def create_booking_checked(
     if not ok:
         return (False, reason, None)
 
-    c.execute(
+    row = c.execute(
         """
         INSERT INTO bookings (tutor_id, student_id, start_ts, end_ts, created_at, notes, status)
         VALUES (%s, %s, %s, %s, %s, %s, 'requested')
         RETURNING id
     """,
         (tutor_id, student_id, start_ts, end_ts, int(time.time()), notes or ""),
-    )
+    ).fetchone()
     conn.commit()
-    return (True, "ok", int(c.fetchone()["id"]))
+    return (True, "ok", int(row["id"]))
 
 
 def get_bookings_for_student(student_id: int) -> list[dict]:
