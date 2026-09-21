@@ -14,18 +14,15 @@ from src.schema import SCHEMA_STATEMENTS
 load_dotenv()
 
 lock = threading.Lock()
-DB_URL = os.environ.get("POSTGRES_URL")
-SSL_ROOT_CERT = "/etc/ssl/certs/supabase-ca.crt"
+DB_URL = os.environ.get("DATABASE_URL")
 _conn = None
 _cursor = None
 
 
 def _new_connection():
-    print(f"connecting to postgres: {DB_URL}")
     return psycopg.connect(
         DB_URL,
         sslmode="require",
-        sslrootcert=SSL_ROOT_CERT,
         row_factory=psycopg.rows.dict_row,
     )
 
