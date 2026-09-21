@@ -73,9 +73,6 @@ def rand_email(i: int) -> str:
     # stable-ish emails so you can rerun by changing prefix if needed
     return f"seed_tutor_{i:02d}@example.com"
 
-def rand_password() -> str:
-    return "123"  # keep simple for seeding
-
 def pick_subjects():
     k = random.randint(2, 5)
     return random.sample(SUBJECT_POOL, k)
@@ -124,11 +121,11 @@ def post_json(url, payload, headers=None, cookies=None, timeout=10):
     r = requests.post(url, json=payload, headers=headers or {}, cookies=cookies or {}, timeout=timeout)
     return r
 
-def seed_one_tutor(i: int, endpoints: dict[str, str]):
+def seed_one_tutor(i: int, endpoints: dict[str, str], password: str):
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
     email = rand_email(i)
-    pwd = rand_password()
+    pwd = password
     subjects = pick_subjects()
     hourly = rand_rate()
     bio = rand_bio(subjects)
@@ -212,7 +209,7 @@ def seed_one_tutor(i: int, endpoints: dict[str, str]):
             cookies=s.cookies.get_dict()
         )
         if ro.status_code != 200:
-            # don’t hard fail; offTimes can overlap (you haven’t constrained overlaps)
+            # don’t hard fail; offTimes can overlap (haven’t constrained overlaps)
             pass
 
     action = "seeded" if was_created else "updated existing"
@@ -236,10 +233,18 @@ def parse_args():
         default=N_TUTORS,
         help=f"How many tutors to seed. Default: {N_TUTORS}",
     )
+    parser.add_argument(
+        "--password",
+        required=True,
+        help="Password assigned to seeded tutor accounts (minimum 6 characters).",
+    )
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    if len(args.password) < 6:
+        raise SystemExit("--password must be at least 6 characters")
+
     api_base = resolve_api_base(args.target, args.api)
     endpoints = build_endpoints(api_base)
 
@@ -248,7 +253,7 @@ def main():
 
     ok = 0
     for i in range(1, args.count + 1):
-        success, msg = seed_one_tutor(i, endpoints)
+        success, msg = seed_one_tutor(i, endpoints, args.password)
         print(msg)
         if success:
             ok += 1
